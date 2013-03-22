@@ -1,0 +1,14 @@
+{
+  "root": {
+    "styles": [],
+    "scripts": [
+      "/scripts/less.min.js"
+    ]
+  },
+  "home-page": {
+    "title": "Forerun",
+    "template": "home-page.mustache",
+    "styles": ["/styles/home-page.less"],
+    "scripts": ["/scripts/home-page.js"]
+  }
+}
