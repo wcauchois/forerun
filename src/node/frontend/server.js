@@ -9,6 +9,7 @@ function sourceDir(name) {
   return path.join(__dirname, '../..', name);
 }
 
+// TODO move to utils?
 function merge(left, right) {
   var result = {};
   for (var attr in left) result[attr] = left[attr];
@@ -26,22 +27,11 @@ function append(first, second) {
 app.set('views', sourceDir('resources/mustache-templates'));
 app.use(express.static(sourceDir('webapp')));
 
-var chromeTemplate =
-  fs.readFileSync(path.join(app.get('views'), 'chrome.mustache'), 'utf8');
 var chrome =
   mustache.compile(fs.readFileSync(
     path.join(app.get('views'), 'chrome.mustache'), 'utf8'));
 var bundles =
   JSON.parse(fs.readFileSync(sourceDir('resources/bundles.json'), 'utf8'));
-
-app.engine('mu', function(path, options, callback) {
-  fs.readFile(path, 'utf8', function(err, template) {
-    if (err) {
-      callback(err);
-    } else callback(null, mustache.render(template, options));
-  });
-});
-
 
 function renderWithChrome(res, bundleName, values) {
   var bundle = bundles[bundleName];
@@ -51,9 +41,8 @@ function renderWithChrome(res, bundleName, values) {
   }
   fs.readFile(templatePath, 'utf8', function(err, template) {
     if (!err) {
-      var body = mustache.render(template, values);
       res.send(chrome({
-        body: body,
+        content: mustache.render(template, values),
         title: bundle.title,
         scripts: pathify(append(bundle.scripts, bundles['root'].scripts)),
         styles: pathify(append(bundle.styles, bundles['root'].styles))
