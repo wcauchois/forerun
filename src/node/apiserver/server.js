@@ -2,9 +2,8 @@ var express = require('express'),
     fs = require('fs'),
     path = require('path'),
     mongoose = require('mongoose'),
-    crypto = require('crypto');
-
-var statusCodes = require('../common/status-codes.js');
+    crypto = require('crypto'),
+    statusCodes = require('../common/status-codes.js');
 
 var Schema = mongoose.Schema;
 var ObjectId = mongoose.Types.ObjectId;
@@ -38,9 +37,10 @@ var consumerSchema = Schema({
   user_id: { type: Schema.Types.ObjectId, required: false }
 });
 
+// Use _id.getTimestamp() to get the date at which a session was created.
 var sessionSchema = Schema({
   api_token: String,
-  consumer_id: Schema.Types.ObjectId
+  consumer_id: Schema.Types.ObjectId,
 });
 
 var User = mongoose.model('User', userSchema);
@@ -57,15 +57,15 @@ function renderedConsumer(consumer) {
     json['user_id'] = consumer.user_id;
   return json;
 }
-function renderedUser(user) {
-  return {
+function renderedUser(user, consumerOpt) {
+  var json = {
     handle: user.handle,
     email: user.email,
     join_date: user.join_date.toString()
   };
-}
-function renderedSession(session) {
-  return { api_token: session.api_token };
+  if (consumerOpt)
+    json['consumer'] = consumerOpt;
+  return json;
 }
 function generateTimedHash(val) {
   return crypto.createHmac('sha1', API_SALT)
@@ -111,40 +111,31 @@ function maybeSendValidationError(res, err) {
   ((err.name == 'ValidationError') ?
     sendValidationError : sendInternalServerError)(res, err);
 }
-function authorized(adminAccessLevel, baseAccessLevel) {
-  return function(apiToken, userId, callback) {
-    Session.findOne({ api_token: apiToken }, function(err, session) {
-      if (err) {
-        callback(err);
-      } else {
-        Consumer.findOne({ _id: session.consumer_id }, function(err, consumer) {
-          if (err) {
-            callback(err);
-          } else {
-            // If they have administrative privileges in this domain, we let them
-            // do what they want.
-            if (consumer.access_level >= adminAccessLevel) {
-              callback(null, consumer);
-            // If they're a regular user, then (if this is a user-specific action)
-            // ensure that they're operating on themselves.
-            } else if (consumer.access_level >= baseAccessLevel &&
-                (user_id == null || consumer.user_id == new ObjectId(userId))) {
-              callback(null, consumer);
-            } else callback(null, null);
-          }
-        });
-      }
-    });
-  };
+function withConsumer(apiToken, callback) {
+  Session.findOne({ api_token: apiToken }, function(err, session) {
+    if (err) {
+      callback(err);
+    } else if (session) {
+      Consumer.findOne({ _id: session.consumer_id }, function(err, consumer) {
+        if (err) {
+          callback(err);
+        } else if (consumer) {
+          callback(null, consumer);
+        } else callback(new Error("Could not find consumer"));
+      });
+    } else callback(new Error("Could not find session"));
+  });
 }
 
-/// <endpoint path="/session/revoke" method="POST" requires_token="true">
+/// <endpoint path="/revoke" method="POST">
 ///   <summary>
 ///     Revoke the current API token, ensuring that no further requests can
 ///     be made using it.
 ///   </summary>
+///   <param name="api_token">The API token.</param>
+///   <result>{ }</result>
 /// </endpoint>
-app.post('/session/revoke', function(req, res) {
+app.post('/revoke', function(req, res) {
   Session.remove({ api_token: req.body.api_token }, function(err) {
     if (err) {
       sendInternalServerError(res, err);
@@ -157,7 +148,7 @@ app.post('/session/revoke', function(req, res) {
   });
 });
 
-/// <endpoint path="/session/authenticate" method="POST" requires_token="false">
+/// <endpoint path="/authenticate" method="POST">
 ///   <summary>
 ///     Authenticate using an API key and secret, returning an API token
 ///     that may be used in subsequent API calls.
@@ -172,70 +163,67 @@ app.post('/session/revoke', function(req, res) {
 ///     { "session": { "api_token": "String" } }
 ///   </response>
 /// </endpoint>
-app.post('/session/authenticate', function(req, res) {
+app.post('/authenticate', function(req, res) {
   Consumer.findOne({ api_key: req.body.api_key }, function(err, consumer) {
     if (err) {
       sendInternalServerError(res, err);
+    } else if (consumer && req.body.api_secret == consumer.api_secret) {
+      var newSession = new Session({
+        api_token: generateTimedHash(consumer.api_key),
+        consumer_id: consumer._id
+      });
+      newSession.save(function(err, session) {
+        if (err) {
+          sendInternalServerError(res, err);
+        } else {
+          res.send({
+            meta: { code: statusCodes.OK },
+            response: { api_token: session.api_token }
+          });
+        }
+      });
     } else {
-      if (req.body.api_secret == consumer.api_secret) {
-        var newSession = new Session({
-          api_token: generateTimedHash(consumer.api_key),
-          consumer_id: consumer._id
-        });
-        newSession.save(function(err, session) {
-          if (err) {
-            sendInternalServerError(res, err);
-          } else {
-            res.send({
-              meta: { code: statusCodes.OK },
-              response: { session: renderedSession(session) }
-            });
-          }
-        });
-      } else {
-        res.send({
-          meta: {
-            code: statusCodes.NOT_AUTHORIZED,
-            errorType: 'authentication_failed',
-            errorDetail: 'Failed to authenticate'
-          },
-          response: { }
-        });
-      }
+      res.send({
+        meta: {
+          code: statusCodes.NOT_AUTHORIZED,
+          errorType: 'authentication_failed',
+          errorDetail: 'Failed to authenticate'
+        },
+        response: { }
+      });
     }
   });
 });
 
-app.post('/user/login', function(req, res) {
-});
-
-/// <endpoint path="/user/new" method="POST" requires_token="true">
+/// <endpoint path="/user/new" method="POST">
 /// <summary>
-///   Create a new user.
+///   Create a new user, along with an associated consumer.
 /// </summary>
 /// <param name="handle">The handle this user will go by.</param>
 /// <param name="email">The email of the new user.</param>
 /// <param name="password_md5">An MD5 hash of the desired password.</param>
+/// <param name="access_level">The desired access level for the new user.</param>
+/// <param name="api_token">The API token (level 6 required).</param>
 /// <response>
 /// {
 ///   "user": {
 ///     "handle": "String",
 ///     "email": "String",
 ///     "join_date": "Date"
-///   },
-///   "consumer": {
-///     "api_key": "String",
-///     "api_secret": "String",
-///     "access_level": "Number"
+///     "consumer": {
+///       "api_key": "String",
+///       "api_secret": "String",
+///       "access_level": "Number"
+///     }
 ///   }
 /// }
 /// </response>
 /// </endpoint>
 app.post('/user/new', function(req, res) {
-  authorized(6)(req.body.api_token, null, function(err, consumer) {
+  withConsumer(req.body.api_token, function(err, consumer) {
     if (err) {
       sendInternalServerError(res, err);
-    } else if (consumer) {
+    } else if (consumer.access_level >= 6) {
       User.find({ handle: req.body.handle }, function(err, users) {
         if (err) {
           sendInternalServerError(res, err);
@@ -275,10 +263,7 @@ app.post('/user/new', function(req, res) {
                 } else {
                   res.send({
                     meta: { code: statusCodes.OK },
-                    response: {
-                      user: renderedUser(user),
-                      consumer: renderedConsumer(consumer)
-                    }
+                    response: { user: renderedUser(user, consumer) }
                   });
                 }
               });

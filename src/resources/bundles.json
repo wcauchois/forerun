@@ -22,8 +22,12 @@
     "styles": ["/styles/home-page.less"],
     "scripts": ["/scripts/home-page.js"]
   },
-  "api-page": {
-    "title": "API Documentation",
-    "template": "api-page.mustache"
+  "api-reference-page": {
+    "title": "API Reference",
+    "template": "api-reference-page.mustache"
+  },
+  "signup-page": {
+    "title": "Signup",
+    "template": "signup-page.mustache"
   }
 }

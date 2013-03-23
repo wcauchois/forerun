@@ -1,7 +1,10 @@
 var express = require('express'),
     fs = require('fs'),
     path = require('path'),
-    mustache = require('mustache');
+    mustache = require('mustache'),
+    crypto = require('crypto');
+var apiClient = require('./api-client.js'),
+    base = require('../common/base.js');
 
 var app = express();
 
@@ -9,23 +12,9 @@ function sourceDir(name) {
   return path.join(__dirname, '../..', name);
 }
 
-// TODO move to utils?
-function merge(left, right) {
-  var result = {};
-  for (var attr in left) result[attr] = left[attr];
-  for (var attr in right) result[attr] = right[attr];
-  return result;
-}
-
-function append(first, second) {
-  var result = [];
-  first.forEach(function(elem) { result.push(elem); });
-  second.forEach(function(elem) { result.push(elem); });
-  return result;
-}
-
 app.set('views', sourceDir('resources/mustache-templates'));
 app.use(express.static(sourceDir('webapp')));
+app.use(express.bodyParser());
 
 var chrome =
   mustache.compile(fs.readFileSync(
@@ -33,6 +22,9 @@ var chrome =
 var bundles =
   JSON.parse(fs.readFileSync(sourceDir('resources/bundles.json'), 'utf8'));
 
+function createMD5Hash(val) {
+  return crypto.createHash('md5').update(val).digest('hex');
+}
 function renderWithChrome(res, bundleName, values) {
   var bundle = bundles[bundleName];
   var templatePath = path.join(app.get('views'), bundle.template);
@@ -44,22 +36,44 @@ function renderWithChrome(res, bundleName, values) {
       res.send(chrome({
         content: mustache.render(template, values),
         title: bundle.title,
-        scripts: pathify(append(bundle.scripts || [], bundles['root'].scripts)),
-        styles: pathify(append(bundle.styles || [], bundles['root'].styles))
+        scripts: pathify(base.append(bundle.scripts || [], bundles['root'].scripts)),
+        styles: pathify(base.append(bundle.styles || [], bundles['root'].styles))
       }));
     } else res.send(500);
   });
 }
 
-app.get('/api', function(req, res) {
+app.get('/api/reference', function(req, res) {
   var docs = JSON.parse(fs.readFileSync(sourceDir('resources/docs.json'), 'utf8'));
-  renderWithChrome(res, 'api-page', { endpoints: docs.endpoints });
+  renderWithChrome(res, 'api-reference-page', { endpoints: docs.endpoints });
 });
 
 app.get('/', function(req, res) {
   renderWithChrome(res, 'home-page', { });
 });
 
-app.listen(3000); // XXX: read port from config
-console.log('Listening on port 3000');
+app.get('/signup', function(req, res) {
+  renderWithChrome(res, 'signup-page', { });
+});
+
+app.post('/signup', function(req, res) {
+  var passwordMD5 = createMD5Hash(req.body.password);
+  app.get('client').user.new_(
+      req.body.handle, req.body.email, passwordMD5, function(err, meta, response) {
+  });
+});
+
+var API_KEY = 'hello';
+var API_SECRET = 'world';
+
+apiClient.authenticate(API_KEY, API_SECRET, function(err, client) {
+  if (err) {
+    console.error("Couldn't authenticate frontend server with API");
+    process.exit(1);
+  } else {
+    app.set('client', client);
+    app.listen(3000); // XXX: read port from config
+    console.log('Listening on port 3000');
+  }
+});
 
