@@ -25,21 +25,42 @@ var bundles =
 function createMD5Hash(val) {
   return crypto.createHash('md5').update(val).digest('hex');
 }
-function renderWithChrome(res, bundleName, values) {
+function sendInternalServerError(res, err) {
+  res.send(500, (err && 'message' in err) ? err.message : 'Unknown');
+}
+function renderWithChrome(res, bundleName, values, title) {
   var bundle = bundles[bundleName];
   var templatePath = path.join(app.get('views'), bundle.template);
-  function pathify(resources) {
-    return resources.map(function(r) { return { path: r }; });
-  }
+  var scripts = 
+    base.append(bundles['root'].scripts, bundle.scripts || []).map(function(p) {
+      return { path: p };
+    });
+  var styles =
+    base.append(bundles['root'].styles, bundle.styles || []).map(function(p) {
+      return {
+        path: p,
+        rel: (path.extname(p) == '.less') ? 'stylesheet/less' : 'stylesheet'
+      };
+    });
+  var clientTemplates = (bundle.clientTemplates || []).map(function(t) {
+    var code = fs.readFileSync(path.join(app.get('views'), t), 'utf8');
+    return {
+      name: path.basename(t, '.mustache'),
+      code: code
+    };
+  });
   fs.readFile(templatePath, 'utf8', function(err, template) {
-    if (!err) {
+    if (err) {
+      sendInternalServerError(res, err);
+    } else {
       res.send(chrome({
         content: mustache.render(template, values),
-        title: bundle.title,
-        scripts: pathify(base.append(bundle.scripts || [], bundles['root'].scripts)),
-        styles: pathify(base.append(bundle.styles || [], bundles['root'].styles))
+        title: title || "Forerun",
+        scripts: scripts,
+        styles: styles,
+        clientTemplates: clientTemplates
       }));
-    } else res.send(500);
+    }
   });
 }
 
@@ -49,7 +70,7 @@ app.get('/api/reference', function(req, res) {
 });
 
 app.get('/', function(req, res) {
-  renderWithChrome(res, 'home-page', { });
+  renderWithChrome(res, 'splash-page', { });
 });
 
 app.get('/signup', function(req, res) {

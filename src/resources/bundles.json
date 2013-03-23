@@ -5,29 +5,38 @@
       "/styles/flat-ui.css"
     ],
     "scripts": [
+      "/scripts/jquery-1.8.2.min.js",
+      "/scripts/underscore-min.js",
+
       "/scripts/bootstrap-tooltip.js",
       "/scripts/custom_checkbox_and_radio.js",
       "/scripts/custom_radio.js",
-      "/scripts/jquery-1.8.2.min.js",
       "/scripts/jquery.dropkick-1.0.0.js",
       "/scripts/jquery.placeholder.js",
       "/scripts/jquery.tagsinput.js",
       "/scripts/jquery-ui-1.10.0.custom.min.js",
-      "/scripts/less.min.js"
+      "/scripts/less.min.js",
+      "/scripts/backbone-min.js",
+      "/scripts/mustache.js",
+
+      "/scripts/forerun.js"
     ]
   },
+  "splash-page": {
+    "template": "splash-page.mustache",
+    "styles": ["/styles/splash-page.less"],
+    "scripts": ["/scripts/splash-page.js"],
+    "clientTemplates": ["signupForm.mustache", "loginForm.mustache"]
+  },
   "home-page": {
-    "title": "Forerun",
     "template": "home-page.mustache",
     "styles": ["/styles/home-page.less"],
     "scripts": ["/scripts/home-page.js"]
   },
   "api-reference-page": {
-    "title": "API Reference",
     "template": "api-reference-page.mustache"
   },
   "signup-page": {
-    "title": "Signup",
     "template": "signup-page.mustache"
   }
 }

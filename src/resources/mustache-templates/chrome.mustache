@@ -4,14 +4,19 @@
   <head>
     <title>{{title}}</title>
     {{#styles}}
-      <link href="{{{path}}}" rel="stylesheet">
+      <link href="{{{path}}}" type="text/css" rel="{{{rel}}}">
     {{/styles}}
+    {{#clientTemplates}}
+      <script type="text/template" data-name="{{name}}">
+        {{{code}}}
+      </script>
+    {{/clientTemplates}}
     {{#scripts}}
       <script type="text/javascript" src="{{{path}}}"></script>
     {{/scripts}}
   </head>
   <body>
-    <div class="container">
+    <div id="page" class="container">
       {{{content}}}
     </div>
   </body>
