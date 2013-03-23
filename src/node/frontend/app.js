@@ -37,22 +37,27 @@ function renderWithChrome(res, bundleName, values) {
   var bundle = bundles[bundleName];
   var templatePath = path.join(app.get('views'), bundle.template);
   function pathify(resources) {
-    return resources.map(function(r) { return {path: r}; });
+    return resources.map(function(r) { return { path: r }; });
   }
   fs.readFile(templatePath, 'utf8', function(err, template) {
     if (!err) {
       res.send(chrome({
         content: mustache.render(template, values),
         title: bundle.title,
-        scripts: pathify(append(bundle.scripts, bundles['root'].scripts)),
-        styles: pathify(append(bundle.styles, bundles['root'].styles))
+        scripts: pathify(append(bundle.scripts || [], bundles['root'].scripts)),
+        styles: pathify(append(bundle.styles || [], bundles['root'].styles))
       }));
     } else res.send(500);
   });
 }
 
+app.get('/api', function(req, res) {
+  var docs = JSON.parse(fs.readFileSync(sourceDir('resources/docs.json'), 'utf8'));
+  renderWithChrome(res, 'api-page', { endpoints: docs.endpoints });
+});
+
 app.get('/', function(req, res) {
-  renderWithChrome(res, 'home-page', {});
+  renderWithChrome(res, 'home-page', { });
 });
 
 app.listen(3000); // XXX: read port from config

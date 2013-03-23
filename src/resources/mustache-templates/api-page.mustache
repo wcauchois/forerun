@@ -1,0 +1,32 @@
+{{#endpoints}}
+  <div class="row">
+    <div class="span2"></div>
+    <div class="span10">
+      <h1><tt>{{path}}</tt></h1>
+      <p>{{summary}}</p>
+      <table>
+        <tr>
+          <td>HTTP Method</td>
+          <td>{{method}}</td>
+        </tr>
+        <tr>
+          <td>Requires API Token</td>
+          <td>{{requires_token}}</td>
+        </tr>
+      </table>
+      <h4>Parameters</h4>
+      <table>
+        {{#params}}
+          <tr>
+            <td>{{name}}</td>
+            <td>{{desc}}</td>
+          </tr>
+        {{/params}}
+      </table>
+      <h4>Response</h4>
+      <pre>{{response}}</pre>
+    </div>
+    <div class="span2"></div>
+  </div>
+  <div class="row"><div class="span12"><hr></div></div>
+{{/endpoints}}
