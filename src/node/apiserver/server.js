@@ -57,11 +57,6 @@ function renderedConsumer(consumer) {
     json['user_id'] = consumer.user_id;
   return json;
 }
-/// <model name="user">
-///   <string name="handle" />
-///   <string name="email" />
-///   <date name="join_date" />
-/// </model>
 function renderedUser(user) {
   return {
     handle: user.handle,
@@ -69,9 +64,6 @@ function renderedUser(user) {
     join_date: user.join_date.toString()
   };
 }
-/// <model name="session">
-///   <string name="api_token" />
-/// </model>
 function renderedSession(session) {
   return { api_token: session.api_token };
 }
