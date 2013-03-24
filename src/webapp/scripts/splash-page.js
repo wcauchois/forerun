@@ -49,42 +49,41 @@ forerun.views.SignupForm = forerun.views.FormDrawer.extend({
     this.$submit = this.$('#submit');
   },
   events: {
-    'blur #handle': 'validateHandle',
-    'blur #email': 'validateEmail',
+    'blur #handle': 'showFieldErrors',
+    'blur #email': 'showFieldErrors',
     'click #submit': 'checkSubmitEnabled'
   },
   checkSubmitEnabled: function() {
     return !this.$submit.hasClass('disabled');
   },
-  disableSubmit: function() {
-    this.$submit.addClass('disabled');
-    this.$submit.removeClass('btn-success');
-  },
-  enableSubmit: function() {
-    this.$submit.removeClass('disabled');
-    this.$submit.addClass('btn-success');
-  },
-  validateHandle: function() {
-    if (!/^\w+$/.test($('#handle').val())) {
-      $('#handle-group').addClass('error');
-      this.disableSubmit();
+  showFieldErrors: function() {
+    var valid = _.every(['handle', 'email'], function(field) {
+      var $field = $('#' + field);
+      if ($field.val().length > 0 &&
+          !forerun.views.SignupForm.REGEXES[field].test($field.val())) {
+        $field.parent().addClass('error');
+        return false;
+      } else {
+        $field.parent().removeClass('error');
+        return true;
+      }
+    });
+    if (valid) {
+      this.$submit.removeClass('disabled');
+      this.$submit.addClass('btn-success');
     } else {
-      $('#handle-group').removeClass('error');
-      this.enableSubmit();
-    }
-  },
-  validateEmail: function() {
-    if (!/^\w(\w|\+)*@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/.test($('#email').val())) {
-      $('#email-group').addClass('error');
-      this.disableSubmit();
-    } else {
-      $('#email-group').removeClass('error');
-      this.enableSubmit();
+      this.$submit.addClass('disabled');
+      this.$submit.removeClass('btn-success');
     }
   },
   render: function() {
     this.$el.html(forerun.templates.signupForm());
     return this;
+  }
+}, {
+  REGEXES: {
+    handle: /^\w+$/,
+    email: /^\w(\w|\+)*@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/
   }
 });
 
