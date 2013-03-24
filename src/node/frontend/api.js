@@ -65,21 +65,17 @@ function userEndpoints(service) {
   };
 }
 
-function authenticatedClient(apiToken) {
-  var emitter = new events.EventEmitter();
+exports.Client = function(apiToken) {
   function service(method, path, params, callback) {
     var newParams = merge(params, { api_token: apiToken });
-    rawService(method, path, newParams, function(err, meta, response) {
-      if (err) {
-        emitter.emit('error', err);
-      } else emitter.emit('response', meta, response);
-      callback(err, meta, response);
-    });
+    rawService(method, path, newParams, callback);
   }
   return {
     apiToken: apiToken,
-    on: emitter.on.bind(emitter),
-    user: userEndpoints(service)
+    user: userEndpoints(service),
+    revoke: function(callback) {
+      service('POST', '/revoke', { api_token: apiToken }, callback);
+    }
   };
 };
 
@@ -90,7 +86,7 @@ exports.authenticate = function(api_key, api_secret, callback) {
   }, function(err, meta, response) {
     if (err || meta.code != 200) {
       callback(new Error("Failed to authenticate"));
-    } else callback(null, authenticatedClient(response.api_token));
+    } else callback(null, response.api_token);
   });
 }
 

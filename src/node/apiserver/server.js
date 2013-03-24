@@ -57,17 +57,18 @@ function renderedConsumer(consumer) {
     access_level: consumer.access_level,
   };
   if (consumer.user_id)
-    json['user_id'] = consumer.user_id;
+    json['user_id'] = consumer.user_id.toString();
   return json;
 }
 function renderedUser(user, consumerOpt) {
   var json = {
+    _id: user._id.toString(),
     handle: user.handle,
     email: user.email,
-    join_date: user.join_date.toString()
+    join_date: user.join_date.getTime()
   };
   if (consumerOpt)
-    json['consumer'] = consumerOpt;
+    json['consumer'] = renderedConsumer(consumerOpt);
   return json;
 }
 function generateTimedHash(val) {
@@ -236,6 +237,7 @@ app.post('/authenticate', function(req, res) {
 /// <response>
 /// {
 ///   "user": {
+///     "_id": "ObjectId",
 ///     "handle": "String",
 ///     "email": "String",
 ///     "join_date": "Date"
@@ -307,6 +309,7 @@ app.post('/user/login', function(req, res) {
 /// <response>
 /// {
 ///   "user": {
+///     "_id": "ObjectId",
 ///     "handle": "String",
 ///     "email": "String",
 ///     "join_date": "Date"

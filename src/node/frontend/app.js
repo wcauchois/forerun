@@ -79,7 +79,7 @@ app.use(function(req, res, next) {
           styles: styles,
           clientTemplates: clientTemplates,
           flash: flashOpt,
-          user: req.session.user
+          user: req.session && req.session['user']
         }));
       }
     });
@@ -89,14 +89,18 @@ app.use(function(req, res, next) {
     res.cookie('flash.message', message);
   };
   res.withUser = function(loggedInCallback, loggedOutCallback) {
-    if (req.session['client']) {
-      loggedInCallback(req.session['user'], req.session['client']);
-    } else loggedOutCallback();
+    if (req.session['api_token']) {
+      loggedInCallback(req.session['user'], api.Client(req.session['api_token']));
+    } else if (loggedOutCallback) {
+      req.session = null;
+      loggedOutCallback();
+    } else res.redirect('/');
   }
   next();
 });
 
 app.get('/api/reference', function(req, res) {
+  // XXX this whole pipeline is totally broken
   var docs = JSON.parse(fs.readFileSync(sourceDir('resources/docs.json'), 'utf8'));
   res.renderWithChrome('api-reference-page', { endpoints: docs.endpoints });
 });
@@ -107,6 +111,27 @@ app.get('/', function(req, res) {
   }, function() {
     res.renderWithChrome('splash-page', { });
   });
+});
+
+app.get('/profile', function(req, res) {
+  res.withUser(function(user, client) {
+    res.renderWithChrome('user-page', {
+      user: user,
+      readable_join_date: basics.readableDate(user.join_date)
+    });
+  });
+});
+
+app.get('/logout', function(req, res) {
+  res.withUser(function(user, client) {
+    req.session = null;
+    res.clearCookie('api_token');
+    client.revoke(function(err, meta, response) {
+      if (err) {
+        res.sendInternalServerError(err);
+      } else res.redirect('/');
+    });
+  }, function() { res.redirect('/'); });
 });
 
 app.post('/login', function(req, res) {
@@ -124,11 +149,12 @@ app.post('/login', function(req, res) {
       } else {
         var api_key = response.user.consumer.api_key;
         var api_secret = response.user.consumer.api_secret;
-        api.authenticate(api_key, api_secret, function(err, client) {
+        api.authenticate(api_key, api_secret, function(err, apiToken) {
           if (err) {
             res.sendInternalServerError(err);
           } else {
-            req.session['client'] = client;
+            res.cookie('api_token', apiToken);
+            req.session['api_token'] = apiToken;
             req.session['user'] = response.user;
             res.redirect('/');
           }
@@ -154,11 +180,12 @@ app.post('/signup', function(req, res) {
       } else {
         var api_key = response.user.consumer.api_key;
         var api_secret = response.user.consumer.api_secret;
-        api.authenticate(api_key, api_secret, function(err, client) {
+        api.authenticate(api_key, api_secret, function(err, apiToken) {
           if (err) {
             res.sendInternalServerError(err);
           } else {
-            req.session['client'] = client;
+            res.cookie('api_token', apiToken);
+            req.session['api_token'] = apiToken;
             req.session['user'] = response.user;
             res.redirect('/');
           }
@@ -171,18 +198,12 @@ app.post('/signup', function(req, res) {
 var API_KEY = 'hello';
 var API_SECRET = 'world';
 
-api.authenticate(API_KEY, API_SECRET, function(err, client) {
+api.authenticate(API_KEY, API_SECRET, function(err, apiToken) {
   if (err) {
     console.error("Couldn't authenticate frontend server with API");
     process.exit(1);
   } else {
-    client.on('response', function(meta, response) {
-      console.log({ meta: meta, response: response });
-    });
-    client.on('error', function(err) {
-      console.error(err);
-    });
-    app.set('client', client);
+    app.set('client', api.Client(apiToken));
     app.listen(3000); // XXX: read port from config
     console.log('Listening on port 3000');
   }
