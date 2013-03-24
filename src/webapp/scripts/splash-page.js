@@ -46,7 +46,6 @@ forerun.views.FormDrawer = Backbone.View.extend({
 forerun.views.SignupForm = forerun.views.FormDrawer.extend({
   initialize: function(options) {
     forerun.views.FormDrawer.prototype.initialize.apply(this, [options]);
-    this.$submit = this.$('#submit');
   },
   events: {
     'blur #handle': 'showFieldErrors',
@@ -54,26 +53,25 @@ forerun.views.SignupForm = forerun.views.FormDrawer.extend({
     'click #submit': 'checkSubmitEnabled'
   },
   checkSubmitEnabled: function() {
-    return !this.$submit.hasClass('disabled');
+    return !this.$('#submit').hasClass('disabled');
   },
   showFieldErrors: function() {
-    var valid = _.every(['handle', 'email'], function(field) {
+    var $submit = this.$('#submit');
+    var valid = true;
+    _.forEach(['handle', 'email'], function(field) {
       var $field = $('#' + field);
       if ($field.val().length > 0 &&
           !forerun.views.SignupForm.REGEXES[field].test($field.val())) {
         $field.parent().addClass('error');
-        return false;
-      } else {
-        $field.parent().removeClass('error');
-        return true;
-      }
+        valid = false;
+      } else $field.parent().removeClass('error');
     });
     if (valid) {
-      this.$submit.removeClass('disabled');
-      this.$submit.addClass('btn-success');
+      $submit.removeClass('disabled');
+      $submit.addClass('btn-success');
     } else {
-      this.$submit.addClass('disabled');
-      this.$submit.removeClass('btn-success');
+      $submit.addClass('disabled');
+      $submit.removeClass('btn-success');
     }
   },
   render: function() {

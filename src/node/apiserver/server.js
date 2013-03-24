@@ -127,8 +127,9 @@ app.use(function(req, res, next) {
     });
   };
   res.maybeSendValidationError = function(err) {
-    ((err.name == 'ValidationError') ?
-      sendValidationError : sendInternalServerError)(res, err);
+    if (err.name == 'ValidationError') {
+      res.sendValidationError(err);
+    } else res.sendInternalServerError(err);
   };
   res.withConsumer = function(callback) {
     if (req.body.api_token) {
