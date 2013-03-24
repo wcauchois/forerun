@@ -2,51 +2,51 @@
 forerun.views.SplashPage = forerun.views.Page.extend({
   initialize: function(options) {
     forerun.views.Page.prototype.initialize.apply(this, [options]);
-    var hash = window.location.hash.substring(1);
-    this.signupForm = new forerun.views.SignupForm({
-      el: this.$('#signupForm'),
-      showByDefault: hash == 'signup'
-    });
-    this.loginForm = new forerun.views.LoginForm({
-      el: this.$('#loginForm'),
-      showByDefault: hash == 'login'
-    });
+    this.signupForm = new forerun.views.SignupForm({ el: this.$('#signupForm') });
+    this.loginForm = new forerun.views.LoginForm({ el: this.$('#loginForm') });
   },
   events: {
     'click #signup': 'showSignup',
     'click #login': 'showLogin'
   },
+  render: function() {
+    var hash = window.location.hash.substring(1);
+    if (hash == 'signup') {
+      this.signupForm.render();
+      this.loginForm.hide();
+    } else if (hash == 'login') {
+      this.loginForm.render();
+      this.signupForm.hide();
+    } else {
+      this.signupForm.hide();
+      this.loginForm.hide();
+    }
+    return this;
+  },
   showSignup: function() {
-    this.loginForm.hide(_.bind(function() {
-      this.signupForm.show();
+    this.loginForm.slideUp(_.bind(function() {
+      this.signupForm.slideDown();
     }, this));
   },
   showLogin: function() {
-    this.signupForm.hide(_.bind(function() {
-      this.loginForm.show();
+    this.signupForm.slideUp(_.bind(function() {
+      this.loginForm.slideDown();
     }, this));
   }
 });
 
 forerun.views.FormDrawer = Backbone.View.extend({
-  initialize: function(options) {
-    if (options.showByDefault) {
-      this.render();
-    } else this.$el.hide();
-  },
-  show: function(complete) {
+  hide: function() { this.$el.hide(); },
+  slideDown: function(complete) {
     this.render();
     this.$el.slideDown(complete);
   },
-  hide: function(complete) {
+  slideUp: function(complete) {
     this.$el.slideUp(complete);
   }
 });
 
 forerun.views.SignupForm = forerun.views.FormDrawer.extend({
-  initialize: function(options) {
-    forerun.views.FormDrawer.prototype.initialize.apply(this, [options]);
-  },
   events: {
     'blur #handle': 'showFieldErrors',
     'blur #email': 'showFieldErrors',

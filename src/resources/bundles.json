@@ -21,7 +21,8 @@
       "/scripts/3rdparty/mustache.js",
 
       "/scripts/chrome.js"
-    ]
+    ],
+    "clientTemplates": ["flashMessage.mustache"]
   },
   "profile-page": {
     "template": "profile-page.mustache",

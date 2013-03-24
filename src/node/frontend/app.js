@@ -52,7 +52,9 @@ app.use(function(req, res, next) {
           rel: (path.extname(p) == '.less') ? 'stylesheet/less' : 'stylesheet'
         };
       });
-    var clientTemplates = (bundle.clientTemplates || []).map(function(t) {
+    var clientTemplates =
+      append(bundles['root'].clientTemplates,
+        bundle.clientTemplates || []).map(function(t) {
       var code = fs.readFileSync(path.join(app.get('views'), t), 'utf8');
       return {
         name: path.basename(t, '.mustache'),
