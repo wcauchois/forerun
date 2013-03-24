@@ -8,7 +8,7 @@ def linode():
 
 def run_with_path(cmd):
   # path weirdness when using ssh
-  run('. ~/.bash_profile && export PATH="/udsr/local/bin:$PATH" && %s' % cmd)
+  run('. ~/.bash_profile && %s' % cmd)
 
 def start():
   with cd('forerun'):
