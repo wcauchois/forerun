@@ -451,6 +451,28 @@ db.on('error', function(err) {
   process.exit(1);
 });
 db.once('open', function() {
+  if (config.frontend_server) {
+    // Ensure that the frontend server is authorized to access us
+    Consumer.findOne({ api_key: config.frontend_server.api_key },
+        function(err, consumer) {
+      if (!err) {
+        if (consumer) {
+          if (consumer.api_secret != config.frontend_server.api_secret) {
+            consumer.api_secret = config.frontend_server.api_secret;
+            consumer.save();
+            console.log('Updated frontend consumer');
+          }
+        } else {
+          (new Consumer({
+            api_key: config.frontend_server.api_key,
+            api_secret: config.frontend_server.api_secret,
+            access_level: 6
+          })).save();
+          console.log('Created frontend consumer');
+        }
+      }
+    });
+  }
   app.listen(config.api_server.port);
   console.log('Listening on port ' + config.api_server.port);
 });
