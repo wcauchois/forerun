@@ -1,4 +1,4 @@
-if [ -f forerun.pid ]; then
+if [ -f $HOME/run/forerun.pid ]; then
   if pgrep -F $HOME/run/forerun.pid >/dev/null; then
     echo "running"
   else
