@@ -89,6 +89,11 @@ app.use(function(req, res, next) {
   res.flash = function(type, message) {
     res.cookie('flash.type', type);
     res.cookie('flash.message', message);
+
+    // This is so that if we call renderWithChrome in the same response handler,
+    // we'll still get the flash.
+    req.cookies['flash.type'] = type;
+    req.cookies['flash.message'] = message;
   };
   res.withUser = function(loggedInCallback, loggedOutCallback) {
     if (req.session['api_token']) {
@@ -109,10 +114,40 @@ app.get('/api/reference', function(req, res) {
 
 app.get('/', function(req, res) {
   res.withUser(function(user, client) {
-    res.renderWithChrome('home-page', { });
+    client.board.all(function(err, meta, response) {
+      if (err) {
+        res.sendInternalServerError(err);
+      } else {
+        if (meta.code != statusCodes.OK)
+          res.flash('error', "Sorry, we couldn't get the boards list for you");
+        res.renderWithChrome('home-page', { boards: response.boards || [] });
+      }
+    });
   }, function() {
     res.renderWithChrome('splash-page', { });
   });
+});
+
+app.post('/board/new', function(req, res) {
+  if (['title', 'subtitle'].every(curriedHas(req.body))) {
+    res.withUser(function(user, client) {
+      client.board.new(req.body.title, req.body.subtitle,
+          function(err, meta, response) {
+        if (err) {
+          res.sendInternalServerError(err);
+        } else {
+          if (meta.code != statusCodes.OK) {
+            if (meta.errorType == 'param_error') {
+              res.flash('error', 'Please provide a title for the new board');
+            } else {
+              res.flash('error', "Sorry, we couldn't create the board. Try again?");
+            }
+          }
+          res.redirect('/');
+        }
+      });
+    });
+  } else res.sendBadRequest();
 });
 
 app.get('/profile', function(req, res) {
@@ -137,7 +172,7 @@ app.get('/logout', function(req, res) {
 });
 
 app.post('/login', function(req, res) {
-  if (req.body.handle && req.body.password) {
+  if (['handle', 'password'].every(curriedHas(req.body))) {
     var passwordMD5 = basics.createMD5Hash(req.body.password);
     app.get('client').user.login(req.body.handle, passwordMD5,
         function(err, meta, response) {

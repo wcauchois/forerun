@@ -37,7 +37,8 @@
   "home-page": {
     "template": "home-page.mustache",
     "styles": ["/styles/home-page.less"],
-    "scripts": ["/scripts/home-page.js"]
+    "scripts": ["/scripts/home-page.js"],
+    "clientTemplates": ["newBoardForm.mustache"]
   },
   "api-reference-page": {
     "template": "api-reference-page.mustache"

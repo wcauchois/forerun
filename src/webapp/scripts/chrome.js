@@ -29,3 +29,24 @@ $("script[type='text/template']").each(function(_, scriptElem) {
   };
 });
 
+forerun.views.Drawer = Backbone.View.extend({
+  initialize: function(options) {
+    this.$el.hide();
+    this.open = false;
+  },
+  toggle: function() {
+    if (this.open) {
+      this.slideUp();
+    } else this.slideDown();
+  },
+  slideDown: function(complete) {
+    this.render();
+    this.$el.slideDown(complete);
+    this.open = true;
+  },
+  slideUp: function(complete) {
+    this.$el.slideUp(complete);
+    this.open = false;
+  }
+});
+

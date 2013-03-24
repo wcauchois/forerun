@@ -13,13 +13,10 @@ forerun.views.SplashPage = forerun.views.Page.extend({
     var hash = window.location.hash.substring(1);
     if (hash == 'signup') {
       this.signupForm.render();
-      this.loginForm.hide();
+      this.signupForm.$el.show();
     } else if (hash == 'login') {
       this.loginForm.render();
-      this.signupForm.hide();
-    } else {
-      this.signupForm.hide();
-      this.loginForm.hide();
+      this.loginForm.$el.show();
     }
     return this;
   },
@@ -35,18 +32,7 @@ forerun.views.SplashPage = forerun.views.Page.extend({
   }
 });
 
-forerun.views.FormDrawer = Backbone.View.extend({
-  hide: function() { this.$el.hide(); },
-  slideDown: function(complete) {
-    this.render();
-    this.$el.slideDown(complete);
-  },
-  slideUp: function(complete) {
-    this.$el.slideUp(complete);
-  }
-});
-
-forerun.views.SignupForm = forerun.views.FormDrawer.extend({
+forerun.views.SignupForm = forerun.views.Drawer.extend({
   events: {
     'blur #handle': 'showFieldErrors',
     'blur #email': 'showFieldErrors',
@@ -85,7 +71,7 @@ forerun.views.SignupForm = forerun.views.FormDrawer.extend({
   }
 });
 
-forerun.views.LoginForm = forerun.views.FormDrawer.extend({
+forerun.views.LoginForm = forerun.views.Drawer.extend({
   render: function() {
     this.$el.html(forerun.templates.loginForm());
     return this;

@@ -1,40 +1,47 @@
-{{!
-<div class="row" style="height: 20px;"></div>
+
 <div class="row">
-  <div class="span10">
-    <div class="navbar navbar-inverse">
-      <div class="navbar-inner">
-        <div class="container">
-          <div class="nav-collapse collapse">
-            <ul class="nav">
-              <li style="font-weight: bold;"><a href="#">Forerun</a></li>
-              <li><a href="#">Boards</a></li>
-              <li><a href="#">Profile</a></li>
-            </ul>
-          </div>
-        </div>
+  <div class="span12">
+    <a href="#" id="new-board-button" title="New Board"
+      class="btn btn-block btn-primary">
+      <span class="fui-plus-16"></span>
+    </a>
+  </div>
+</div>
+<div class="row" style="margin-bottom: 5px;">
+  <div class="span8"></div>
+  <div class="span4" id="new-board-form"></div>
+</div>
+
+<div class="row">
+  <div class="span7 header">Board</div>
+  <div class="span1 header center">Threads</div>
+  <div class="span1 header center">Posts</div>
+  <div class="span3 header">Last Post</div>
+</div>
+
+{{#boards}}
+  <div class="row board">
+    <div class="span7">
+      <div class="board-title">
+        <a href="/board/{{_id}}">
+          <h4>{{title}}</h4>
+        </a>
       </div>
+      <div class="board-subtitle">{{subtitle}}</div>
+    </div>
+    <div class="span1 center">
+      {{thread_count}}
+    </div>
+    <div class="span1 center">
+      {{post_count}}
+    </div>
+    <div class="span3">
+      {{! todo: last post }}
     </div>
   </div>
+{{/boards}}
 
-  <div class="span2">
-    <a href="#"
-       style="margin-top: 3px;"
-       class="btn btn-large btn-block btn-warning">Logout</a>
-  </div>
-</div>
-<div class="row">
-  <div class="span1"></div>
-  <div class="span6 palette palette-concrete">
-    this is a long topic title la la la
-    <span style="text-transform: none;">
-    </span>
-  </div>
-  <div class="span4 palette palette-asbestos">
-    <span style="text-transform: none;">
-      <strong>Bill Cauchois</strong>, Sam Tannert, Ted Broadhurst (11)
-    </span>
-  </div>
-  <div class="span1"></div>
-</div>
-}}
+<script type="text/javascript">
+  var currentPage = new forerun.views.HomePage({ el: $('#page') });
+</script>
+

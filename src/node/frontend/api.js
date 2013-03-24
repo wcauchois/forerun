@@ -2,7 +2,8 @@ var http = require('http'),
     url = require('url'),
     querystring = require('querystring'),
     events = require('events'),
-    basics = require('../common/basics.js');
+    basics = require('../common/basics.js'),
+    statusCodes = require('../common/status-codes.js');
 
 var merge = basics.merge;
 
@@ -27,23 +28,23 @@ function rawService(method, path, params, callback) {
     options.headers['Content-Length'] = data.length;
   }
   var req = http.request(options, function(res) {
-    res.setEncoding('utf8');
-    res.on('readable', function() {
-      var raw = res.read();
-      var json = null;
-      try {
-        json = JSON.parse(raw);
-      } catch(_) { }
-      if (json != null) {
-        callback(null, json.meta, json.response);
-      } else callback(new Error("Malformed response"));
-    });
+    if (res.statusCode == statusCodes.OK) {
+      res.setEncoding('utf8');
+      res.on('readable', function() {
+        var raw = res.read();
+        var json = null;
+        try {
+          json = JSON.parse(raw);
+        } catch(_) { }
+        if (json != null) {
+          callback(null, json.meta, json.response);
+        } else callback(new Error("Malformed response"));
+      });
+    } else callback(new Error("API server returned a " + res.statusCode));
   });
   req.on('error', function(err) { callback(err); });
-  if (data) {
-    req.write(data);
-    req.end();
-  }
+  if (data) req.write(data);
+  req.end();
 }
 
 function userEndpoints(service) {
@@ -65,6 +66,20 @@ function userEndpoints(service) {
   };
 }
 
+function boardEndpoints(service) {
+  return {
+    all: function(callback) {
+      service('GET', '/boards', { }, callback);
+    },
+    new: function(title, subtitle, callback) {
+      service('POST', '/board/new', {
+        title: title,
+        subtitle: subtitle
+      }, callback);
+    }
+  };
+}
+
 exports.Client = function(apiToken) {
   function service(method, path, params, callback) {
     var newParams = merge(params, { api_token: apiToken });
@@ -73,6 +88,7 @@ exports.Client = function(apiToken) {
   return {
     apiToken: apiToken,
     user: userEndpoints(service),
+    board: boardEndpoints(service),
     revoke: function(callback) {
       service('POST', '/revoke', { api_token: apiToken }, callback);
     }

@@ -32,6 +32,18 @@ userSchema.path('password_md5').validate(function(val) {
   return /^[a-f0-9]{32}$/.test(val);
 }, 'Invalid password MD5');
 
+var boardSchema = Schema({
+  title: String,
+  subtitle: String,
+  thread_count: { type: Number, default: 0 },
+  post_count: { type: Number, default: 0 },
+  last_post_by: { type: String, required: false },
+  last_post_date: { type: Date, required: false }
+});
+boardSchema.path('title').validate(function(val) {
+  return val.length > 0
+}, 'Must provide a board title');
+
 var consumerSchema = Schema({
   api_key: String,
   api_secret: String,
@@ -49,7 +61,24 @@ var sessionSchema = Schema({
 var User = mongoose.model('User', userSchema);
 var Consumer = mongoose.model('Consumer', consumerSchema);
 var Session = mongoose.model('Session', sessionSchema);
+var Board = mongoose.model('Board', boardSchema);
 
+function renderedBoard(board) {
+  var json = {
+    _id: board._id.toString(),
+    title: board.title,
+    subtitle: board.subtitle,
+    thread_count: board.thread_count,
+    post_count: board.post_count,
+  };
+  if (board.last_post_by && board.last_post_date) {
+    json.last_post = {
+      by: board.last_post_by,
+      date: board.last_post_date.getTime()
+    };
+  }
+  return json;
+}
 function renderedConsumer(consumer) {
   var json = {
     api_key: consumer.api_key,
@@ -132,13 +161,14 @@ app.use(function(req, res, next) {
     } else res.sendInternalServerError(err);
   };
   res.withConsumer = function(callback) {
-    if (req.body.api_token) {
-      Session.findOne({ api_token: req.body.api_token }, function(err, session) {
-        session.touch_date = Date.now();
-        session.save(function(err) { });
+    var apiToken = req.query.api_token || req.body.api_token;
+    if (apiToken) {
+      Session.findOne({ api_token: apiToken }, function(err, session) {
         if (err) {
           res.sendInternalServerError(err);
         } else if (session) {
+          session.touch_date = Date.now();
+          session.save(function(err) { });
           Consumer.findOne({ _id: session.consumer_id }, function(err, consumer) {
             if (err) {
               res.sendInternalServerError(err);
@@ -162,7 +192,7 @@ app.use(function(req, res, next) {
 ///   <result>{ }</result>
 /// </endpoint>
 app.post('/revoke', function(req, res) {
-  if (req.body.api_token) {
+  if (['api_token'].every(curriedHas(req.body))) {
     Session.remove({ api_token: req.body.api_token }, function(err) {
       if (err) {
         res.sendInternalServerError(err);
@@ -192,7 +222,7 @@ app.post('/revoke', function(req, res) {
 ///   </response>
 /// </endpoint>
 app.post('/authenticate', function(req, res) {
-  if (req.body.api_key && req.body.api_secret) {
+  if (['api_key', 'api_secret'].every(curriedHas(req.body))) {
     Consumer.findOne({ api_key: req.body.api_key }, function(err, consumer) {
       if (err) {
         res.sendInternalServerError(err);
@@ -252,7 +282,7 @@ app.post('/authenticate', function(req, res) {
 /// </response>
 /// </endpoint>
 app.post('/user/login', function(req, res) {
-  if (req.body.handle && req.body.password_md5) {
+  if (['handle', 'password_md5'].every(curriedHas(req.body))) {
     res.withConsumer(function(consumer) {
       if (consumer.access_level >= 6) {
         User.findOne({ handle: req.body.handle }, function(err, user) {
@@ -373,6 +403,46 @@ app.post('/user/new', function(req, res) {
       } else res.sendNotAuthorized();
     });
   } else res.sendInsufficientParameters();
+});
+
+app.post('/board/new', function(req, res) {
+  if (['title', 'subtitle'].every(curriedHas(req.body))) {
+    res.withConsumer(function(consumer) {
+      if (consumer.access_level >= 0) {
+        var newBoard = new Board({
+          title: req.body.title,
+          subtitle: req.body.subtitle
+        });
+        newBoard.save(function(err, board) {
+          if (err) {
+            res.maybeSendValidationError(err);
+          } else {
+            res.send({
+              meta: { code: statusCodes.OK },
+              response: { board: renderedBoard(board) }
+            });
+          }
+        });
+      } else res.sendNotAuthorized();
+    });
+  } else res.sendInsufficientParameters();
+});
+
+app.get('/boards', function(req, res) {
+  res.withConsumer(function(consumer) {
+    if (consumer.access_level >= 0) {
+      Board.find({ }, function(err, boards) {
+        if (err) {
+          res.sendInternalServerError(err);
+        } else {
+          res.send({
+            meta: { code: statusCodes.OK },
+            response: { boards: boards.map(renderedBoard) }
+          });
+        }
+      });
+    } else res.sendNotAuthorized();
+  });
 });
 
 mongoose.connect('mongodb://localhost/forerun');
