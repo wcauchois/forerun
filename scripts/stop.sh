@@ -1,10 +1,10 @@
 #!/bin/bash
 case `bash scripts/check_status.sh` in
   running)
-    PID=`cat forerun.pid`
+    PID=`cat $HOME/run/forerun.pid`
     if kill $PID; then
       while [ -e /proc/$PID ]; do sleep 0.1; done
-      rm forerun.pid
+      rm $HOME/run/forerun.pid
       echo "Stopped Forerun"
       exit 0
     else
