@@ -3,8 +3,10 @@ var express = require('express'),
     path = require('path'),
     mongoose = require('mongoose'),
     crypto = require('crypto'),
-    statusCodes = require('../common/status-codes.js');
+    statusCodes = require('../common/status-codes.js'),
+    basics = require('../common/basics.js');
 
+var curriedHas = basics.curriedHas;
 var Schema = mongoose.Schema;
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -41,6 +43,7 @@ var consumerSchema = Schema({
 var sessionSchema = Schema({
   api_token: String,
   consumer_id: Schema.Types.ObjectId,
+  touch_date: { type: Date, default: Date.now }
 });
 
 var User = mongoose.model('User', userSchema);
@@ -73,59 +76,80 @@ function generateTimedHash(val) {
     .update(Date.now().toString())
     .digest('base64');
 }
-function sendInternalServerError(res, err) {
-  res.send({
-    meta: {
-      code: statusCodes.INTERNAL_SERVER_ERROR,
-      errorType: 'server_error',
-      errorDetail: (err && 'message' in err) ? err.message : 'Unknown'
-    }
-  });
-}
-function sendNotAuthorized(res) {
-  res.send({
-    meta: {
-      code: statusCodes.NOT_AUTHORIZED,
-      errorType: 'not_authorized',
-      errorDetail: 'You are not authorized to make this call'
-    }
-  });
-}
-function sendValidationError(res, err) {
-  res.send({
-    meta: {
-      code: statusCodes.BAD_REQUEST,
-      errorType: 'param_error',
-      errorDetail: 'Invalid parameters',
-      paramErrors: Object.keys(err.errors).map(function(param) {
-        return {
-          param: param,
-          message: err.errors[param].type,
-          value: err.errors[param].value
-        };
-      })
-    }
-  });
-}
-function maybeSendValidationError(res, err) {
-  ((err.name == 'ValidationError') ?
-    sendValidationError : sendInternalServerError)(res, err);
-}
-function withConsumer(apiToken, callback) {
-  Session.findOne({ api_token: apiToken }, function(err, session) {
-    if (err) {
-      callback(err);
-    } else if (session) {
-      Consumer.findOne({ _id: session.consumer_id }, function(err, consumer) {
+
+app.use(function(req, res, next) {
+  res.sendInternalServerError = function(err) {
+    res.send({
+      meta: {
+        code: statusCodes.INTERNAL_SERVER_ERROR,
+        errorType: 'server_error',
+        errorDetail: (err && 'message' in err) ? err.message : 'Unknown'
+      },
+      response: { }
+    });
+  };
+  res.sendInsufficientParameters = function() {
+    res.send({
+      meta: {
+        code: statusCodes.BAD_REQUEST,
+        errorType: 'insufficient_params',
+        errorDetail: 'Insufficient parameters for this call'
+      },
+      response: { }
+    });
+  };
+  res.sendNotAuthorized = function() {
+    res.send({
+      meta: {
+        code: statusCodes.NOT_AUTHORIZED,
+        errorType: 'not_authorized',
+        errorDetail: 'You are not authorized to make this call'
+      },
+      response: { }
+    });
+  };
+  res.sendValidationError = function(err) {
+    res.send({
+      meta: {
+        code: statusCodes.BAD_REQUEST,
+        errorType: 'param_error',
+        errorDetail: 'Invalid parameters',
+        paramErrors: Object.keys(err.errors).map(function(param) {
+          return {
+            param: param,
+            message: err.errors[param].type,
+            value: err.errors[param].value
+          };
+        })
+      },
+      response: { }
+    });
+  };
+  res.maybeSendValidationError = function(err) {
+    ((err.name == 'ValidationError') ?
+      sendValidationError : sendInternalServerError)(res, err);
+  };
+  res.withConsumer = function(callback) {
+    if (req.body.api_token) {
+      Session.findOne({ api_token: req.body.api_token }, function(err, session) {
+        session.touch_date = Date.now();
+        session.save(function(err) { });
         if (err) {
-          callback(err);
-        } else if (consumer) {
-          callback(null, consumer);
-        } else callback(new Error("Could not find consumer"));
+          res.sendInternalServerError(err);
+        } else if (session) {
+          Consumer.findOne({ _id: session.consumer_id }, function(err, consumer) {
+            if (err) {
+              res.sendInternalServerError(err);
+            } else if (consumer) {
+              callback(consumer);
+            } else res.sendNotAuthorized();
+          });
+        } else res.sendNotAuthorized();
       });
-    } else callback(new Error("Could not find session"));
-  });
-}
+    } else res.sendNotAuthorized();
+  };
+  next();
+});
 
 /// <endpoint path="/revoke" method="POST">
 ///   <summary>
@@ -136,16 +160,18 @@ function withConsumer(apiToken, callback) {
 ///   <result>{ }</result>
 /// </endpoint>
 app.post('/revoke', function(req, res) {
-  Session.remove({ api_token: req.body.api_token }, function(err) {
-    if (err) {
-      sendInternalServerError(res, err);
-    } else {
-      res.send({
-        meta: { code: statusCodes.OK },
-        response: { }
-      });
-    }
-  });
+  if (req.body.api_token) {
+    Session.remove({ api_token: req.body.api_token }, function(err) {
+      if (err) {
+        res.sendInternalServerError(err);
+      } else {
+        res.send({
+          meta: { code: statusCodes.OK },
+          response: { }
+        });
+      }
+    });
+  } else res.sendInsufficientParameters();
 });
 
 /// <endpoint path="/authenticate" method="POST">
@@ -164,35 +190,109 @@ app.post('/revoke', function(req, res) {
 ///   </response>
 /// </endpoint>
 app.post('/authenticate', function(req, res) {
-  Consumer.findOne({ api_key: req.body.api_key }, function(err, consumer) {
-    if (err) {
-      sendInternalServerError(res, err);
-    } else if (consumer && req.body.api_secret == consumer.api_secret) {
-      var newSession = new Session({
-        api_token: generateTimedHash(consumer.api_key),
-        consumer_id: consumer._id
-      });
-      newSession.save(function(err, session) {
-        if (err) {
-          sendInternalServerError(res, err);
-        } else {
-          res.send({
-            meta: { code: statusCodes.OK },
-            response: { api_token: session.api_token }
-          });
-        }
-      });
-    } else {
-      res.send({
-        meta: {
-          code: statusCodes.NOT_AUTHORIZED,
-          errorType: 'authentication_failed',
-          errorDetail: 'Failed to authenticate'
-        },
-        response: { }
-      });
-    }
-  });
+  if (req.body.api_key && req.body.api_secret) {
+    Consumer.findOne({ api_key: req.body.api_key }, function(err, consumer) {
+      if (err) {
+        res.sendInternalServerError(err);
+      } else if (consumer && req.body.api_secret == consumer.api_secret) {
+        var newSession = new Session({
+          api_token: generateTimedHash(consumer.api_key),
+          consumer_id: consumer._id
+        });
+        newSession.save(function(err, session) {
+          if (err) {
+            res.sendInternalServerError(err);
+          } else {
+            res.send({
+              meta: { code: statusCodes.OK },
+              response: { api_token: session.api_token }
+            });
+          }
+        });
+      } else {
+        res.send({
+          meta: {
+            code: statusCodes.NOT_AUTHORIZED,
+            errorType: 'authentication_failed',
+            errorDetail: 'Failed to authenticate'
+          },
+          response: { }
+        });
+      }
+    });
+  } else res.sendInsufficientParameters();
+});
+
+/// <endpoint path="/user/login" method="POST">
+/// <summary>
+///   Used when logging in a user, this endpoint will verify the user's handle
+///   and password and, if corrrect, return the user object (with consumer).
+///   Note that the notion of "logging in" does not exist on the API; you must
+///   still authenticate using the consumer to gain an API token.
+/// </summary>
+/// <param name="handle">The user's handle.</param>
+/// <param name="password_md5">An MD5 hash of the password to test.</param>
+/// <param name="api_token">The API token (access level 6 required).</param>
+/// <response>
+/// {
+///   "user": {
+///     "handle": "String",
+///     "email": "String",
+///     "join_date": "Date"
+///     "consumer": {
+///       "api_key": "String",
+///       "api_secret": "String",
+///       "access_level": "Number"
+///     }
+///   }
+/// }
+/// </response>
+/// </endpoint>
+app.post('/user/login', function(req, res) {
+  if (req.body.handle && req.body.password_md5) {
+    res.withConsumer(function(consumer) {
+      if (consumer.access_level >= 6) {
+        User.findOne({ handle: req.body.handle }, function(err, user) {
+          if (err) {
+            res.sendInternalServerError(err);
+          } else if (user) {
+            if (user.password_md5 == req.body.password_md5) {
+              Consumer.findOne({ _id: user.consumer_id }, function(err, consumer) {
+                if (err) {
+                  res.sendInternalServerError(err);
+                } else if (consumer) {
+                  res.send({
+                    meta: { code: statusCodes.OK },
+                    response: { user: renderedUser(user, consumer) }
+                  });
+                } else {
+                  res.sendInternalServerError(new Error("Couldn't find consumer"));
+                }
+              });
+            } else {
+              res.send({
+                meta: {
+                  code: statusCodes.BAD_REQUEST,
+                  errorType: 'login_failed',
+                  errorDetail: 'The password was incorrect'
+                },
+                response: { }
+              });
+            }
+          } else {
+            res.send({
+              meta: {
+                code: statusCodes.BAD_REQUEST,
+                errorType: 'login_failed',
+                errorDetail: 'No user with that handle exists'
+              },
+              response: { }
+            });
+          }
+        });
+      } else res.sendNotAuthorized();
+    });
+  } else res.sendInsufficientParameters();
 });
 
 /// <endpoint path="/user/new" method="POST">
@@ -203,7 +303,7 @@ app.post('/authenticate', function(req, res) {
 /// <param name="email">The email of the new user.</param>
 /// <param name="password_md5">An MD5 hash of the desired password.</param>
 /// <param name="access_level">The desired access level for the new user.</param>
-/// <param name="api_token">The API token (level 6 required).</param>
+/// <param name="api_token">The API token (access level 6 required).</param>
 /// <response>
 /// {
 ///   "user": {
@@ -220,59 +320,55 @@ app.post('/authenticate', function(req, res) {
 /// </response>
 /// </endpoint>
 app.post('/user/new', function(req, res) {
-  withConsumer(req.body.api_token, function(err, consumer) {
-    if (err) {
-      sendInternalServerError(res, err);
-    } else if (consumer.access_level >= 6) {
-      User.find({ handle: req.body.handle }, function(err, users) {
-        if (err) {
-          sendInternalServerError(res, err);
-        } else if (users.length > 0) {
-          res.send({
-            meta: {
-              code: statusCodes.BAD_REQUEST,
-              errorType: 'param_error',
-              errorDetail: 'Handle taken',
-              paramErrors: [{
-                param: 'handle',
-                message: 'There is already a user with that handle',
-                value: req.body.handle
-              }]
-            },
-            response: { }
-          });
-        } else {
-          var newConsumer = new Consumer({
-            api_key: generateTimedHash(req.body.handle),
-            api_secret: generateTimedHash(req.body.password_md5),
-            access_level: Math.min(consumer.access_level, req.body.access_level || 0)
-          });
-          newConsumer.save(function(err, consumer) {
-            if (err) {
-              sendInternalServerError(res, err);
-            } else {
-              var newUser = new User({
-                handle: req.body.handle,
-                email: req.body.email,
-                password_md5: req.body.password_md5,
-                consumer_id: consumer._id
-              });
-              newUser.save(function(err, user) {
-                if (err) {
-                  maybeSendValidationError(res, err);
-                } else {
-                  res.send({
-                    meta: { code: statusCodes.OK },
-                    response: { user: renderedUser(user, consumer) }
-                  });
-                }
-              });
-            }
-          });
-        }
-      });
-    } else sendNotAuthorized(res);
-  });
+  if (['handle', 'email', 'password_md5'].every(curriedHas(req.body))) {
+    res.withConsumer(function(consumer) {
+      if (consumer.access_level >= 6) {
+        User.find({ handle: req.body.handle }, function(err, users) {
+          if (err) {
+            res.sendInternalServerError(err);
+          } else if (users.length > 0) {
+            res.send({
+              meta: {
+                code: statusCodes.BAD_REQUEST,
+                errorType: 'handle_taken',
+                errorDetail: 'That handle has been taken'
+              },
+              response: { }
+            });
+          } else {
+            var newConsumer = new Consumer({
+              api_key: generateTimedHash(req.body.handle),
+              api_secret: generateTimedHash(req.body.password_md5),
+              access_level:
+                Math.min(consumer.access_level, req.body.access_level || 0)
+            });
+            newConsumer.save(function(err, consumer) {
+              if (err) {
+                res.sendInternalServerError(err);
+              } else {
+                var newUser = new User({
+                  handle: req.body.handle,
+                  email: req.body.email,
+                  password_md5: req.body.password_md5,
+                  consumer_id: consumer._id
+                });
+                newUser.save(function(err, user) {
+                  if (err) {
+                    res.maybeSendValidationError(err);
+                  } else {
+                    res.send({
+                      meta: { code: statusCodes.OK },
+                      response: { user: renderedUser(user, consumer) }
+                    });
+                  }
+                });
+              }
+            });
+          }
+        });
+      } else res.sendNotAuthorized();
+    });
+  } else res.sendInsufficientParameters();
 });
 
 mongoose.connect('mongodb://localhost/forerun');

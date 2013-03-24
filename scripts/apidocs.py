@@ -8,7 +8,7 @@ def extract_doc_tree(name):
     for line in f.readlines():
       if line.startswith('/// '):
         doc_lines.append(line[4:].strip('\n'))
-  return ET.fromstring('<doc>%s</doc>' % ''.join(doc_lines))
+  return ET.fromstring('<root>%s</root>' % ''.join(doc_lines))
 
 def str_bool(s):
   return True if s == 'true' else False
