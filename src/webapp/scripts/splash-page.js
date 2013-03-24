@@ -67,7 +67,7 @@ forerun.views.SignupForm = forerun.views.Drawer.extend({
 }, {
   REGEXES: {
     handle: /^\w+$/,
-    email: /^\w(\w|\+)*@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/
+    email: /^\w(\w|\+|\.)*@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/
   }
 });
 

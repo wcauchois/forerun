@@ -25,7 +25,7 @@ userSchema.path('handle').validate(function(val) {
   return /^\w+$/.test(val);
 }, 'Can only contain letters, numbers, and underscores');
 userSchema.path('email').validate(function(val) {
-  return /^\w(\w|\+)*@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/.test(val);
+  return /^\w(\w|\+|\.)*@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/.test(val);
 }, 'Invalid email address');
 userSchema.path('password_md5').validate(function(val) {
   return /^[a-f0-9]{32}$/.test(val);
