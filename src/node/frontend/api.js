@@ -3,17 +3,15 @@ var http = require('http'),
     querystring = require('querystring'),
     events = require('events'),
     basics = require('../common/basics.js'),
-    statusCodes = require('../common/status-codes.js');
+    statusCodes = require('../common/status-codes.js'),
+    config = require('config');
 
 var merge = basics.merge;
 
-var API_HOSTNAME = 'localhost';
-var API_PORT = 4000;
-
 function rawService(method, path, params, callback) {
   var options = {
-    hostname: API_HOSTNAME,
-    port: API_PORT,
+    hostname: config.frontend_server.api_host,
+    port: config.frontend_server.api_port,
     method: method,
     path: url.format({
       pathname: path,
@@ -80,17 +78,17 @@ function boardEndpoints(service) {
   };
 }
 
-exports.Client = function(apiToken) {
+exports.Client = function(api_token) {
   function service(method, path, params, callback) {
-    var newParams = merge(params, { api_token: apiToken });
+    var newParams = merge(params, { api_token: api_token });
     rawService(method, path, newParams, callback);
   }
   return {
-    apiToken: apiToken,
+    api_token: api_token,
     user: userEndpoints(service),
     board: boardEndpoints(service),
     revoke: function(callback) {
-      service('POST', '/revoke', { api_token: apiToken }, callback);
+      service('POST', '/revoke', { api_token: api_token }, callback);
     }
   };
 };

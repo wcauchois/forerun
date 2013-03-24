@@ -1,0 +1,15 @@
+{
+  "api_server": {
+    "port": 4000,
+    "salt": "billybob",
+    "db_url": "mongodb://localhost/forerun"
+  },
+  "frontend_server": {
+    "cookie_secret": "oh you",
+    "api_key": "hello",
+    "api_secret": "world",
+    "port": 3000,
+    "api_host": "localhost",
+    "api_port": 4000
+  }
+}

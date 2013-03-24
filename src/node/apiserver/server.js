@@ -4,13 +4,12 @@ var express = require('express'),
     mongoose = require('mongoose'),
     crypto = require('crypto'),
     statusCodes = require('../common/status-codes.js'),
-    basics = require('../common/basics.js');
+    basics = require('../common/basics.js'),
+    config = require('config');
 
 var curriedHas = basics.curriedHas;
 var Schema = mongoose.Schema;
 var ObjectId = mongoose.Types.ObjectId;
-
-var API_SALT = 'billybob';
 
 var app = express();
 app.use(express.bodyParser());
@@ -101,7 +100,7 @@ function renderedUser(user, consumerOpt) {
   return json;
 }
 function generateTimedHash(val) {
-  return crypto.createHmac('sha1', API_SALT)
+  return crypto.createHmac('sha1', config.api_server.salt)
     .update(val)
     .update(Date.now().toString())
     .digest('base64');
@@ -161,9 +160,9 @@ app.use(function(req, res, next) {
     } else res.sendInternalServerError(err);
   };
   res.withConsumer = function(callback) {
-    var apiToken = req.query.api_token || req.body.api_token;
-    if (apiToken) {
-      Session.findOne({ api_token: apiToken }, function(err, session) {
+    var api_token = req.query.api_token || req.body.api_token;
+    if (api_token) {
+      Session.findOne({ api_token: api_token }, function(err, session) {
         if (err) {
           res.sendInternalServerError(err);
         } else if (session) {
@@ -445,12 +444,13 @@ app.get('/boards', function(req, res) {
   });
 });
 
-mongoose.connect('mongodb://localhost/forerun');
+mongoose.connect(config.api_server.db_url);
 var db = mongoose.connection;
 db.on('error', function(err) {
   console.error(err);
   process.exit(1);
 });
 db.once('open', function() {
-  app.listen(4000);
+  app.listen(config.api_server.port);
+  console.log('Listening on port ' + config.api_server.port);
 });

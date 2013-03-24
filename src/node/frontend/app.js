@@ -5,7 +5,8 @@ var express = require('express'),
     crypto = require('crypto'),
     api = require('./api.js'),
     basics = require('../common/basics.js'),
-    statusCodes = require('../common/status-codes.js');
+    statusCodes = require('../common/status-codes.js'),
+    config = require('config');
 
 var append = basics.append;
 var curriedHas = basics.curriedHas;
@@ -16,13 +17,11 @@ function sourceDir(name) {
   return path.join(__dirname, '../..', name);
 }
 
-var COOKIE_SECRET = 'oh you';
-
 app.set('views', sourceDir('resources/mustache-templates'));
 app.use(express.static(sourceDir('webapp')));
 app.use(express.bodyParser());
 app.use(express.cookieParser());
-app.use(express.cookieSession({ secret: COOKIE_SECRET }));
+app.use(express.cookieSession({ secret: config.frontend_server.cookie_secret }));
 
 var chrome =
   mustache.compile(fs.readFileSync(
@@ -173,8 +172,8 @@ app.get('/logout', function(req, res) {
 
 app.post('/login', function(req, res) {
   if (['handle', 'password'].every(curriedHas(req.body))) {
-    var passwordMD5 = basics.createMD5Hash(req.body.password);
-    app.get('client').user.login(req.body.handle, passwordMD5,
+    var password_md5 = basics.createMD5Hash(req.body.password);
+    app.get('client').user.login(req.body.handle, password_md5,
         function(err, meta, response) {
       if (err) {
         res.sendInternalServerError(err);
@@ -186,12 +185,12 @@ app.post('/login', function(req, res) {
       } else {
         var api_key = response.user.consumer.api_key;
         var api_secret = response.user.consumer.api_secret;
-        api.authenticate(api_key, api_secret, function(err, apiToken) {
+        api.authenticate(api_key, api_secret, function(err, api_token) {
           if (err) {
             res.sendInternalServerError(err);
           } else {
-            res.cookie('api_token', apiToken);
-            req.session['api_token'] = apiToken;
+            res.cookie('api_token', api_token);
+            req.session['api_token'] = api_token;
             req.session['user'] = response.user;
             res.redirect('/');
           }
@@ -203,9 +202,9 @@ app.post('/login', function(req, res) {
 
 app.post('/signup', function(req, res) {
   if (['handle', 'email', 'password'].every(curriedHas(req.body))) {
-    var passwordMD5 = basics.createMD5Hash(req.body.password);
+    var password_md5 = basics.createMD5Hash(req.body.password);
     app.get('client').user.new_(
-        req.body.handle, req.body.email, passwordMD5, 0,
+        req.body.handle, req.body.email, password_md5, 0,
         function(err, meta, response) {
       if (err) {
         res.sendInternalServerError(err);
@@ -217,12 +216,12 @@ app.post('/signup', function(req, res) {
       } else {
         var api_key = response.user.consumer.api_key;
         var api_secret = response.user.consumer.api_secret;
-        api.authenticate(api_key, api_secret, function(err, apiToken) {
+        api.authenticate(api_key, api_secret, function(err, api_token) {
           if (err) {
             res.sendInternalServerError(err);
           } else {
-            res.cookie('api_token', apiToken);
-            req.session['api_token'] = apiToken;
+            res.cookie('api_token', api_token);
+            req.session['api_token'] = api_token;
             req.session['user'] = response.user;
             res.redirect('/');
           }
@@ -232,17 +231,32 @@ app.post('/signup', function(req, res) {
   } else res.sendBadRequest();
 });
 
-var API_KEY = 'hello';
-var API_SECRET = 'world';
+function authenticateWithRetries(api_key, api_secret, numRetries, callback) {
+  if (numRetries == 0) {
+    callback(new Error("Couldn't authenticate with retries"));
+  } else {
+    api.authenticate(api_key, api_secret, function(err, api_token) {
+      if (err) {
+        setTimeout(function() {
+          authenticateWithRetries(api_key, api_secret, numRetries - 1, callback);
+        }, 500);
+      } else callback(null, api_token);
+    });
+  }
+}
 
-api.authenticate(API_KEY, API_SECRET, function(err, apiToken) {
+authenticateWithRetries(
+    config.frontend_server.api_key,
+    config.frontend_server.api_secret,
+    5, function(err, api_token) {
   if (err) {
     console.error("Couldn't authenticate frontend server with API");
     process.exit(1);
   } else {
-    app.set('client', api.Client(apiToken));
-    app.listen(3000); // XXX: read port from config
-    console.log('Listening on port 3000');
+    app.set('client', api.Client(api_token));
+    app.listen(config.frontend_server.port);
+    console.log('Using API token: ' + api_token);
+    console.log('Listening on port ' + config.frontend_server.port);
   }
 });
 
