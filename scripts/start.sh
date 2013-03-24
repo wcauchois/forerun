@@ -6,7 +6,7 @@ case `bash scripts/check_status.sh` in
     exit 0
     ;;
   stopped)
-    foreman start >log/out.log 2>log/error.log &
+    nohup foreman start >log/out.log 2>log/error.log &
     if [ $? -eq 0 ]; then
       echo $! >$HOME/run/forerun.pid
       echo "Started Forerun"
