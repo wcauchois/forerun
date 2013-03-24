@@ -115,7 +115,7 @@ app.get('/', function(req, res) {
 
 app.get('/profile', function(req, res) {
   res.withUser(function(user, client) {
-    res.renderWithChrome('user-page', {
+    res.renderWithChrome('profile-page', {
       user: user,
       readable_join_date: basics.readableDate(user.join_date)
     });

@@ -23,9 +23,9 @@
       "/scripts/chrome.js"
     ]
   },
-  "user-page": {
-    "template": "user-page.mustache",
-    "styles": ["/styles/user-page.less"]
+  "profile-page": {
+    "template": "profile-page.mustache",
+    "styles": ["/styles/profile-page.less"]
   },
   "splash-page": {
     "template": "splash-page.mustache",
