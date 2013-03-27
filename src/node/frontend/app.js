@@ -206,7 +206,8 @@ app.get('/logout', function(req, res) {
 app.post('/login', function(req, res) {
   if (['handle', 'password'].every(curriedHas(req.body))) {
     var password_md5 = basics.createMD5Hash(req.body.password);
-    app.get('client').user.login(req.body.handle, password_md5,
+    var client = api.Client(app.get('api_token'));
+    client.user.login(req.body.handle, password_md5,
         function(err, meta, response) {
       if (err) {
         res.sendInternalServerError(err);
@@ -236,7 +237,8 @@ app.post('/login', function(req, res) {
 app.post('/signup', function(req, res) {
   if (['handle', 'email', 'password'].every(curriedHas(req.body))) {
     var password_md5 = basics.createMD5Hash(req.body.password);
-    app.get('client').user.new_(
+    var client = api.Client(app.get('api_token'));
+    client.user.new_(
         req.body.handle, req.body.email, password_md5, 0,
         function(err, meta, response) {
       if (err) {
@@ -286,7 +288,7 @@ authenticateWithRetries(
     console.error("Couldn't authenticate frontend server with API");
     process.exit(1);
   } else {
-    app.set('client', api.Client(api_token));
+    app.set('api_token', api_token);
     app.listen(config.frontend_server.port);
     console.log('Using API token: ' + api_token);
     console.log('Listening on port ' + config.frontend_server.port);
