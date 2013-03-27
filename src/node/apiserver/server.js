@@ -5,7 +5,9 @@ var express = require('express'),
     crypto = require('crypto'),
     statusCodes = require('../common/status-codes.js'),
     basics = require('../common/basics.js'),
-    config = require('config');
+    config = require('config'),
+    events = require('events'),
+    url = require('url');
 
 var curriedHas = basics.curriedHas,
     Schema = mongoose.Schema,
@@ -13,6 +15,9 @@ var curriedHas = basics.curriedHas,
 
 var app = express();
 app.use(express.bodyParser());
+
+// Used for all app events -- such as adding a user, post, or thread.
+var emitter = new events.EventEmitter();
 
 var userSchema = Schema({
   handle: String,
@@ -57,7 +62,6 @@ var consumerSchema = Schema({
   api_key: String,
   api_secret: String,
   access_level: Number,
-  user_id: { type: ObjectId, required: false }
 });
 
 // Use _id.getTimestamp() to get the date at which a session was created.
@@ -69,7 +73,7 @@ var sessionSchema = Schema({
 
 var streamReceiverSchema = Schema({
   consumer_id: ObjectId,
-  endpoint: String
+  endpoint: String,
 });
 
 var User = mongoose.model('User', userSchema);
@@ -217,7 +221,7 @@ app.use(function(req, res, next) {
   };
   res.withConsumerAndUser = function(callback) {
     res.withConsumer(function(consumer) {
-      User.findOne({ _id: consumer.user_id }, function(err, user) {
+      User.findOne({ consumer_id: consumer._id }, function(err, user) {
         if (err) {
           res.sendInternalServerError(err);
         } else if (user) {
@@ -418,13 +422,13 @@ app.post('/user/new', function(req, res) {
               response: { }
             });
           } else {
-            var newConsumer = new Consumer({
+            var newUserConsumer = new Consumer({
               api_key: generateTimedHash(req.body.handle),
               api_secret: generateTimedHash(req.body.password_md5),
               access_level:
                 Math.min(consumer.access_level, req.body.access_level || 0)
             });
-            newConsumer.save(function(err, consumer) {
+            newUserConsumer.save(function(err, userConsumer) {
               if (err) {
                 res.sendInternalServerError(err);
               } else {
@@ -432,15 +436,16 @@ app.post('/user/new', function(req, res) {
                   handle: req.body.handle,
                   email: req.body.email,
                   password_md5: req.body.password_md5,
-                  consumer_id: consumer._id
+                  consumer_id: userConsumer._id
                 });
                 newUser.save(function(err, user) {
                   if (err) {
                     res.maybeSendValidationError(err);
                   } else {
+                    emitter.emit('new-user', user);
                     res.send({
                       meta: { code: statusCodes.OK },
-                      response: { user: renderedUser(user, consumer) }
+                      response: { user: renderedUser(user, userConsumer) }
                     });
                   }
                 });
@@ -475,6 +480,7 @@ app.post('/thread/new', function(req, res) {
             function respond(postOpt) {
               var responseJson = { thread: renderedThread(thread) };
               if (postOpt) responseJson.post = renderedPost(post);
+              emitter.emit('new-thread', thread, postOpt);
               res.send({
                 meta: { code: statusCodes.OK },
                 response: responseJson
@@ -571,6 +577,7 @@ app.post('/post/new', function(req, res) {
                     thread.last_post_date = Date.now();
                     thread.save();
                   }
+                  emitter.emit('new-post', post);
                   res.send({
                     meta: { code: statusCodes.OK },
                     response: {
@@ -628,7 +635,7 @@ app.post('/stream/register-receiver', function(req, res) {
                 res.sendInternalServerError(err);
               } else {
                 res.send({
-                  meta: { statusCodes.OK },
+                  meta: { code: statusCodes.OK },
                   response: { }
                 });
               }
@@ -642,6 +649,31 @@ app.post('/stream/register-receiver', function(req, res) {
 
 app.post('/stream/unregister-receiver', function(req, res) {
   // TODO
+});
+
+// TODO this should send the app secret so we know we're receiving from a
+// reputable source
+function callStreamReceivers(data) {
+  StreamReceiver.find({ }, function(err, receivers) {
+    if (!err) {
+      receivers.forEach(function(receiver) {
+        var options = url.parse(receiver.endpoint);
+        options['method'] = 'POST';
+        var req = http.request(options, function(res) {
+          // TODO we're gonna wanna track failures and back off
+        });
+        req.write(JSON.stringify(data));
+        req.end();
+      });
+    }
+  });
+}
+
+emitter.on('new-thread', function(thread) {
+  callStreamReceivers({
+    type: 'new-thread',
+    thread: renderedThread(thread)
+  });
 });
 
 mongoose.connect(config.api_server.db_url);

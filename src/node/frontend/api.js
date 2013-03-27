@@ -10,14 +10,14 @@ var merge = basics.merge;
 
 function rawService(method, path, params, callback) {
   var options = {
-    hostname: config.frontend_server.api_host,
+    hostname: config.frontend_server.api_hostname,
     port: config.frontend_server.api_port,
     method: method,
     path: url.format({
       pathname: path,
       query: (method == 'GET') ? params : null
     }),
-    headers: {}
+    headers: { }
   };
   var data = null;
   if (method == 'POST') {
@@ -33,12 +33,15 @@ function rawService(method, path, params, callback) {
         var json = null;
         try {
           json = JSON.parse(raw);
-        } catch(_) { }
+        } catch(ex) { }
         if (json != null) {
           callback(null, json.meta, json.response);
         } else callback(new Error("Malformed response"));
       });
-    } else callback(new Error("API server returned a " + res.statusCode));
+    } else {
+      console.error(meta);
+      callback(new Error("API server returned a " + res.statusCode));
+    }
   });
   req.on('error', function(err) { callback(err); });
   if (data) req.write(data);
@@ -95,6 +98,16 @@ function postEndpoints(service) {
   };
 }
 
+function streamEndpoints(service) {
+  return {
+    registerReceiver: function(endpoint, callback) {
+      service('POST', '/stream/register-receiver', {
+        endpoint: endpoint
+      }, callback);
+    }
+  };
+}
+
 exports.Client = function(api_token) {
   function service(method, path, params, callback) {
     var newParams = merge(params, { api_token: api_token });
@@ -105,6 +118,7 @@ exports.Client = function(api_token) {
     user: userEndpoints(service),
     thread: threadEndpoints(service),
     post: postEndpoints(service),
+    stream: streamEndpoints(service),
     revoke: function(callback) {
       service('POST', '/revoke', { api_token: api_token }, callback);
     }

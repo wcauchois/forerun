@@ -6,12 +6,18 @@ var express = require('express'),
     api = require('./api.js'),
     basics = require('../common/basics.js'),
     statusCodes = require('../common/status-codes.js'),
-    config = require('config');
+    config = require('config'),
+    http = require('http'),
+    url = require('url'),
+    events = require('events');
 
 var append = basics.append,
     curriedHas = basics.curriedHas;
 
 var app = express();
+var server = http.createServer(app);
+var io = require('socket.io').listen(server);
+var emitter = new events.EventEmitter();
 
 function sourceDir(name) {
   return path.join(__dirname, '../..', name);
@@ -266,6 +272,16 @@ app.post('/signup', function(req, res) {
   } else res.sendBadRequest();
 });
 
+app.post('/stream-receiver', function(req, res) {
+  // TODO check API secret on request, when that's done
+  console.log(req);
+});
+
+server.on('request', function(req, res) {
+  console.log(req.url);
+  // XXX
+});
+
 function authenticateWithRetries(api_key, api_secret, numRetries, callback) {
   if (numRetries == 0) {
     callback(new Error("Couldn't authenticate with retries"));
@@ -289,9 +305,21 @@ authenticateWithRetries(
     process.exit(1);
   } else {
     app.set('api_token', api_token);
-    app.listen(config.frontend_server.port);
+    server.listen(config.frontend_server.port);
     console.log('Using API token: ' + api_token);
     console.log('Listening on port ' + config.frontend_server.port);
+
+    api.Client(api_token).stream.registerReceiver(
+        url.format({
+          protocol: 'http',
+          hostname: config.frontend_server.receiver_hostname,
+          port: config.frontend_server.receiver_port,
+          pathname: '/stream-receiver'
+        }), function(err, meta, response) {
+      if (err || meta.code != statusCodes.OK) {
+        console.error("Couldn't register stream receiver");
+      }
+    });
   }
 });
 
