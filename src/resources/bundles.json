@@ -19,6 +19,7 @@
       "/scripts/3rdparty/less.min.js",
       "/scripts/3rdparty/backbone-min.js",
       "/scripts/3rdparty/mustache.js",
+      "/scripts/3rdparty/socket.io.min.js",
 
       "/scripts/chrome.js"
     ],
