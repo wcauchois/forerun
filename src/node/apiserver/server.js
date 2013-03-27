@@ -7,9 +7,11 @@ var express = require('express'),
     basics = require('../common/basics.js'),
     config = require('config'),
     events = require('events'),
-    url = require('url');
+    url = require('url'),
+    http = require('http');
 
 var curriedHas = basics.curriedHas,
+    merge = basics.merge,
     Schema = mongoose.Schema,
     ObjectId = Schema.Types.ObjectId;
 
@@ -167,12 +169,12 @@ app.use(function(req, res, next) {
       response: { }
     });
   };
-  res.sendNotAuthorized = function() {
+  res.sendNotAuthorized = function(typeOpt, detailOpt) {
     res.send({
       meta: {
         code: statusCodes.NOT_AUTHORIZED,
-        errorType: 'not_authorized',
-        errorDetail: 'You are not authorized to make this call'
+        errorType: typeOpt || 'not_authorized',
+        errorDetail: detailOpt || 'You are not authorized to make this call'
       },
       response: { }
     });
@@ -213,9 +215,13 @@ app.use(function(req, res, next) {
               res.sendInternalServerError(err);
             } else if (consumer) {
               callback(consumer);
-            } else res.sendNotAuthorized();
+            } else {
+              res.sendNotAuthorized('invalid_token', 'No consumer for that token');
+            }
           });
-        } else res.sendNotAuthorized();
+        } else {
+          res.sendNotAuthorized('invalid_token', 'No such token exists');
+        }
       });
     } else res.sendNotAuthorized();
   };
@@ -651,19 +657,22 @@ app.post('/stream/unregister-receiver', function(req, res) {
   // TODO
 });
 
-// TODO this should send the app secret so we know we're receiving from a
-// reputable source
 function callStreamReceivers(data) {
   StreamReceiver.find({ }, function(err, receivers) {
     if (!err) {
       receivers.forEach(function(receiver) {
-        var options = url.parse(receiver.endpoint);
-        options['method'] = 'POST';
-        var req = http.request(options, function(res) {
-          // TODO we're gonna wanna track failures and back off
+        Consumer.findOne({ _id: receiver.consumer_id }, function(err, consumer) {
+          if (!err && consumer) {
+            var options = url.parse(receiver.endpoint);
+            options['method'] = 'POST';
+            var req = http.request(options, function(res) {
+              // TODO we're gonna wanna track failures and back off
+            });
+            req.write(JSON.stringify(
+              merge(data, { api_secret: consumer.api_secret })));
+            req.end();
+          }
         });
-        req.write(JSON.stringify(data));
-        req.end();
       });
     }
   });

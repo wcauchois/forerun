@@ -46,6 +46,9 @@
 {{/boards}}
 
 <script type="text/javascript">
-  var currentPage = new forerun.views.HomePage({ el: $('#page') });
+  var currentPage = new forerun.views.HomePage({
+    el: $('#page'),
+    config: {{{config_json}}}
+  });
 </script>
 

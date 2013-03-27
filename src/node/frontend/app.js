@@ -12,6 +12,7 @@ var express = require('express'),
     events = require('events');
 
 var append = basics.append,
+    merge = basics.merge,
     curriedHas = basics.curriedHas;
 
 var app = express();
@@ -25,7 +26,18 @@ function sourceDir(name) {
 
 app.set('views', sourceDir('resources/mustache-templates'));
 app.use(express.static(sourceDir('webapp')));
-app.use(express.bodyParser());
+app.use((function() {
+  var bodyParser = express.bodyParser();
+  return function(req, res, next) {
+    if (req.path == '/stream-receiver') {
+      req.setEncoding('utf8');
+      req.on('readable', function() {
+        req.data = JSON.parse(req.read());
+        next();
+      });
+    } else bodyParser(req, res, next);
+  };
+})());
 app.use(express.cookieParser());
 app.use(express.cookieSession({ secret: config.frontend_server.cookie_secret }));
 
@@ -83,7 +95,8 @@ app.use(function(req, res, next) {
         res.sendInternalServerError(err);
       } else {
         res.send(chrome({
-          content: mustache.render(template, options),
+          content: mustache.render(template,
+            merge({ config_json: JSON.stringify(config.client) }, options)),
           title: 'Forerun',
           scripts: scripts,
           styles: styles,
@@ -273,13 +286,30 @@ app.post('/signup', function(req, res) {
 });
 
 app.post('/stream-receiver', function(req, res) {
-  // TODO check API secret on request, when that's done
-  console.log(req);
+  if (req.data.type && req.data.api_secret == config.frontend_server.api_secret) {
+    emitter.emit(req.data.type, req.data);
+  }
 });
 
-server.on('request', function(req, res) {
-  console.log(req.url);
-  // XXX
+function matchesScope(data, scope) {
+  for (var key in Object.keys(scope)) {
+    if (scope[key] != data[key]) return false;
+  }
+  return true;
+}
+
+io.of('/threads').on('connection', function(socket) {
+  socket.once('scope', function(scope) {
+    var newThreadListener = function(data) {
+      if (matchesScope(data.thread, scope)) {
+        socket.emit('new-thread', data.thread);
+      }
+    };
+    emitter.on('new-thread', newThreadListener);
+    socket.on('disconnect', function() {
+      emitter.removeListener('new-thread', newThreadListener);
+    });
+  });
 });
 
 function authenticateWithRetries(api_key, api_secret, numRetries, callback) {
