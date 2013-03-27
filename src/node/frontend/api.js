@@ -64,19 +64,30 @@ function userEndpoints(service) {
   };
 }
 
-function boardEndpoints(service) {
+function threadEndpoints(service) {
   return {
     all: function(callback) {
-      service('GET', '/boards', { }, callback);
+      service('GET', '/threads', { }, callback);
     },
-    new: function(title, subtitle, callback) {
-      service('POST', '/board/new', {
-        title: title,
-        subtitle: subtitle
+    new_: function(title, callback) {
+      service('POST', '/thread/new', { title: title }, callback);
+    },
+    get: function(id, callback) {
+      service('GET', '/thread/' + id, { }, callback);
+    }
+  };
+}
+
+function postEndpoints(service) {
+  return {
+    new_: function(body_html, thread_id, callback) {
+      service('POST', '/post/new', {
+        body_html: body_html,
+        thread_id: thread_id
       }, callback);
     },
     get: function(id, callback) {
-      service('GET', '/board/' + id, { }, callback);
+      service('GET', '/post/' + id, { }, callback);
     }
   };
 }
@@ -89,7 +100,8 @@ exports.Client = function(api_token) {
   return {
     api_token: api_token,
     user: userEndpoints(service),
-    board: boardEndpoints(service),
+    thread: threadEndpoints(service),
+    post: postEndpoints(service),
     revoke: function(callback) {
       service('POST', '/revoke', { api_token: api_token }, callback);
     }
