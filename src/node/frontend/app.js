@@ -8,8 +8,8 @@ var express = require('express'),
     statusCodes = require('../common/status-codes.js'),
     config = require('config');
 
-var append = basics.append;
-var curriedHas = basics.curriedHas;
+var append = basics.append,
+    curriedHas = basics.curriedHas;
 
 var app = express();
 
@@ -116,17 +116,24 @@ app.get('/api/reference', function(req, res) {
 
 app.get('/', function(req, res) {
   res.withUser(function(user, client) {
-    client.board.all(function(err, meta, response) {
+    client.thread.all(function(err, meta, response) {
       if (err) {
         res.sendInternalServerError(err);
       } else {
         if (meta.code != statusCodes.OK)
-          res.flash('error', "Sorry, we couldn't get the boards list for you");
-        res.renderWithChrome('home-page', { boards: response.boards || [] });
+          res.flash('error', "Sorry, we couldn't get the threads list for you");
+        res.renderWithChrome('home-page', { threads: response.threads || [] });
       }
     });
   }, function() {
     res.renderWithChrome('splash-page', { });
+  });
+});
+
+app.get('/thread/:id', function(req, res) {
+  res.withUser(function(user, client) {
+    client.thread.get(function(err, meta, response) {
+    });
   });
 });
 

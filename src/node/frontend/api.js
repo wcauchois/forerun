@@ -69,8 +69,11 @@ function threadEndpoints(service) {
     all: function(callback) {
       service('GET', '/threads', { }, callback);
     },
-    new_: function(title, callback) {
-      service('POST', '/thread/new', { title: title }, callback);
+    new_: function(title, body_markdown, callback) {
+      service('POST', '/thread/new', {
+        title: title,
+        body_markdown: body_markdown
+      }, callback);
     },
     get: function(id, callback) {
       service('GET', '/thread/' + id, { }, callback);

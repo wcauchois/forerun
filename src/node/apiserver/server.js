@@ -49,7 +49,7 @@ var postSchema = Schema({
   user_id: ObjectId,
   thread_id: ObjectId
 });
-postSchema.path('body_html').validate(val) {
+postSchema.path('body_html').validate(function(val) {
   return val.length > 0;
 }, 'Must provide a post body');
 
@@ -451,19 +451,43 @@ app.post('/thread/new', function(req, res) {
   if (['title'].every(curriedHas(req.body))) {
     res.withConsumerAndUser(function(consumer, user) {
       if (consumer.access_level >= 0) {
-        var newThread = new Thread({
+        var threadDoc = {
           title: req.body.title,
           user_handle: user.handle,
           user_id: user._id
-        });
+        }
+        if (req.body.body_markdown) {
+          threadDoc.last_post_author = user.handle;
+          threadDoc.last_post_date = Date.now();
+          threadDoc.reply_count = 1;
+        }
+        var newThread = new Thread(threadDoc);
         newThread.save(function(err, thread) {
           if (err) {
             maybeSendValidationError(err);
           } else {
-            res.send({
-              meta: { code: statusCodes.OK },
-              response: { thread: renderedThread(thread) }
-            });
+            function respond(postOpt) {
+              var responseJson = { thread: renderedThread(thread) };
+              if (postOpt) responseJson.post = renderedPost(post);
+              res.send({
+                meta: { code: statusCodes.OK },
+                response: responseJson
+              });
+            }
+            if (req.body.body_markdown) {
+              // Make a best-effort attempt to create the original post
+              var newPost = new Post({
+                body_html: req.body.body_markdown,
+                user_handle: user.handle,
+                user_id: user._id,
+                thread_id: thread._id
+              });
+              newPost.save(function(err, post) {
+                if (err) {
+                  respond(null);
+                } else respond(post);
+              });
+            } else respond(null);
           }
         });
       } else res.sendNotAuthorized();
@@ -515,7 +539,7 @@ app.get('/thread/:id', function(req, res) {
 });
 
 app.post('/post/new', function(req, res) {
-  if (['body_html', 'thread_id'].every(curriedHas(req.body))) {
+  if (['body_markdown', 'thread_id'].every(curriedHas(req.body))) {
     res.withConsumerAndUser(function(consumer, user) {
       if (consumer.access_level >= 0) {
         Thread.findOne({ _id: req.body.thread_id }, function(err, thread) {
@@ -523,7 +547,7 @@ app.post('/post/new', function(req, res) {
             res.sendInternalServerError(err);
           } else if (thread) {
             var newPost = new Post({
-              body_html: req.body.body_html,
+              body_html: req.body.body_markdown,
               user_handle: user.handle,
               user_id: user._id,
               thread_id: thread._id
