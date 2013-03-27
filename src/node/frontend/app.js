@@ -46,6 +46,10 @@ var chrome =
     path.join(app.get('views'), 'chrome.mustache'), 'utf8'));
 var bundles =
   JSON.parse(fs.readFileSync(sourceDir('resources/bundles.json'), 'utf8'));
+bundles['root'].partials.forEach(function(partial) {
+  mustache.compilePartial(path.basename(partial, '.mustache'),
+    fs.readFileSync(path.join(app.get('views'), partial), 'utf8'));
+});
 
 app.use(function(req, res, next) {
   res.sendBadRequest = function() {
@@ -152,7 +156,7 @@ app.get('/', function(req, res) {
 
 app.get('/thread/:id', function(req, res) {
   res.withUser(function(user, client) {
-    client.thread.get(function(err, meta, response) {
+    client.thread.get(req.params.id, function(err, meta, response) {
     });
   });
 });
@@ -300,6 +304,7 @@ function matchesScope(data, scope) {
 }
 
 io.of('/threads').on('connection', function(socket) {
+  socket.on('error', function(err) { console.error(err); });
   socket.once('scope', function(scope) {
     var newThreadListener = function(data) {
       if (matchesScope(data.thread, scope)) {

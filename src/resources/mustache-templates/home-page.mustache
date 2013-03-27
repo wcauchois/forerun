@@ -1,4 +1,4 @@
-
+<!--
 <div class="row">
   <div class="span12">
     <a href="#" id="new-board-button" title="New Board"
@@ -44,6 +44,22 @@
     </div>
   </div>
 {{/boards}}
+-->
+
+<div class="row">
+  <div class="span7 header">Thread</div>
+  <div class="span1 header">User</div>
+  <div class="span1 header">Replies</div>
+  <div class="span3 header">Last Post</div>
+</div>
+
+<div class="row" id="new-threads-bar"></div>
+
+{{#threads}}
+  <div class="row thread">
+    {{> thread}}
+  </div>
+{{/threads}}
 
 <script type="text/javascript">
   var currentPage = new forerun.views.HomePage({
