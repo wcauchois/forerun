@@ -127,11 +127,12 @@ app.use(function(req, res, next) {
   next();
 });
 
+/* XXX this whole pipeline is totally broken
 app.get('/api/reference', function(req, res) {
-  // XXX this whole pipeline is totally broken
   var docs = JSON.parse(fs.readFileSync(sourceDir('resources/docs.json'), 'utf8'));
   res.renderWithChrome('api-reference-page', { endpoints: docs.endpoints });
 });
+*/
 
 app.get('/', function(req, res) {
   res.withUser(function(user, client) {

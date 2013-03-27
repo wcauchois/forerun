@@ -19,7 +19,7 @@ forerun.views.NewBoardForm = forerun.views.Drawer.extend({
 });
 
 // XXX hacky
-var socket = io.connect('http://localhost:3000/threads');
-socket.emit('scope', { });
+//var socket = io.connect('http://localhost:3000/threads');
+//socket.emit('scope', { });
 //socket.on('new-thread', function() { alert('YOOYOYO'); });
 
