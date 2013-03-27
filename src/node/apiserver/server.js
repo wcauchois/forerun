@@ -67,11 +67,17 @@ var sessionSchema = Schema({
   touch_date: { type: Date, default: Date.now }
 });
 
+var streamReceiverSchema = Schema({
+  consumer_id: ObjectId,
+  endpoint: String
+});
+
 var User = mongoose.model('User', userSchema);
 var Consumer = mongoose.model('Consumer', consumerSchema);
 var Session = mongoose.model('Session', sessionSchema);
 var Thread = mongoose.model('Thread', threadSchema);
 var Post = mongoose.model('Post', postSchema);
+var StreamReceiver = mongoose.model('StreamReceiver', streamReceiverSchema);
 
 function renderedPost(post) {
   return {
@@ -597,6 +603,45 @@ app.get('/post/:id', function(req, res) {
       });
     } else res.sendNotAuthorized();
   });
+});
+
+app.post('/stream/register-receiver', function(req, res) {
+  if (['endpoint'].every(curriedHas(req.body))) {
+    res.withConsumer(function(consumer) {
+      // XXX might want to rethink this access level restriction
+      if (consumer.access_level >= 2) {
+        StreamReceiver.findOne({ consumer_id: consumer._id },
+            function(err, streamReceiver) {
+          if (err) {
+            res.sendInternalServerError(err);
+          } else {
+            if (streamReceiver) {
+              streamReceiver.endpoint = req.body.endpoint;
+            } else {
+              streamReceiver = new StreamReceiver({
+                consumer_id: consumer._id,
+                endpoint: req.body.endpoint
+              });
+            }
+            streamReceiver.save(function(err) {
+              if (err) {
+                res.sendInternalServerError(err);
+              } else {
+                res.send({
+                  meta: { statusCodes.OK },
+                  response: { }
+                });
+              }
+            });
+          }
+        });
+      } else res.sendNotAuthorized();
+    });
+  } else res.sendInsufficientParameters();
+});
+
+app.post('/stream/unregister-receiver', function(req, res) {
+  // TODO
 });
 
 mongoose.connect(config.api_server.db_url);
