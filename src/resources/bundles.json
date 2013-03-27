@@ -20,6 +20,7 @@
       "/scripts/3rdparty/backbone-min.js",
       "/scripts/3rdparty/mustache.js",
       "/scripts/3rdparty/socket.io.min.js",
+      "/scripts/3rdpart/jquery.timeago.js",
 
       "/scripts/chrome.js"
     ],
