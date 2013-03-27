@@ -24,6 +24,9 @@
     ],
     "clientTemplates": ["flashMessage.mustache"]
   },
+  "board-page": {
+    "template": "board-page.mustache"
+  },
   "profile-page": {
     "template": "profile-page.mustache",
     "styles": ["/styles/profile-page.less"]

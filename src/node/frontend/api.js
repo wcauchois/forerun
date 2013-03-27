@@ -74,6 +74,9 @@ function boardEndpoints(service) {
         title: title,
         subtitle: subtitle
       }, callback);
+    },
+    get: function(id, callback) {
+      service('GET', '/board/' + id, { }, callback);
     }
   };
 }

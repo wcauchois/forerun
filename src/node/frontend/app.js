@@ -33,6 +33,9 @@ app.use(function(req, res, next) {
   res.sendBadRequest = function() {
     res.send(statusCodes.BAD_REQUEST, 'Bad request');
   };
+  res.sendNotFound = function() {
+    res.send(statusCodes.NOT_FOUND, 'Not found');
+  };
   res.sendInternalServerError = function(err) {
     res.send(statusCodes.INTERNAL_SERVER_ERROR,
       (err && 'message' in err) ? err.message : 'Unkown error');
@@ -124,6 +127,29 @@ app.get('/', function(req, res) {
     });
   }, function() {
     res.renderWithChrome('splash-page', { });
+  });
+});
+
+app.get('/board/:id', function(req, res) {
+  res.withUser(function (user, client) {
+    client.board.get(req.params.id, function(err, meta, response) {
+      if (err) {
+        res.sendInternalServerError(err);
+      } else {
+        if (meta.code == statusCodes.NOT_FOUND) {
+          res.sendNotFound();
+        } else if (meta.code != statusCodes.OK) {
+          // XXX better error reporting in these types of cases? i don't know
+          res.flash('error', "We couldn't access that board for you");
+          res.redirect('/');
+        } else {
+          res.renderWithChrome('board-page', {
+            board: response.board,
+            threads: response.threads
+          });
+        }
+      }
+    });
   });
 });
 

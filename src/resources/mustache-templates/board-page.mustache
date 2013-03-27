@@ -1,0 +1,39 @@
+<!--
+<ul class="pager">
+  <li class="previous">
+    <a href="#">
+      <img src="/images/pager/previous.png">
+    </a>
+  </li>
+  <li class="next">
+    <a href="#">
+      {{board.title}}
+      <img src="/images/pager/next.png">
+    </a>
+  </li>
+</ul>
+<h4>
+-->
+<div class="row">
+  <div class="span1">
+    <div class="pagination">
+      <ul>
+        <li class="previous">
+          <a href="/">
+            <img src="/images/pager/previous.png">
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="span11">
+    <h4><a href="/board/{{board.id}}">{{board.title}}</a></h4>
+  </div>
+</div>
+
+<div class="row">
+  <div class="span6 header">Thread</div>
+  <div class="span2 header">Author</div>
+  <div class="span1 header center">Replies</div>
+  <div class="span3 header">Last Post</div>
+</div>

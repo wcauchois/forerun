@@ -7,9 +7,9 @@ var express = require('express'),
     basics = require('../common/basics.js'),
     config = require('config');
 
-var curriedHas = basics.curriedHas;
-var Schema = mongoose.Schema;
-var ObjectId = mongoose.Types.ObjectId;
+var curriedHas = basics.curriedHas,
+    Schema = mongoose.Schema,
+    ObjectId = Schema.Types.ObjectId;
 
 var app = express();
 app.use(express.bodyParser());
@@ -19,7 +19,7 @@ var userSchema = Schema({
   email: String,
   password_md5: String,
   join_date: { type: Date, default: Date.now },
-  consumer_id: Schema.Types.ObjectId
+  consumer_id: ObjectId
 });
 userSchema.path('handle').validate(function(val) {
   return /^\w+$/.test(val);
@@ -31,49 +31,69 @@ userSchema.path('password_md5').validate(function(val) {
   return /^[a-f0-9]{32}$/.test(val);
 }, 'Invalid password MD5');
 
-var boardSchema = Schema({
+var threadSchema = Schema({
   title: String,
-  subtitle: String,
-  thread_count: { type: Number, default: 0 },
-  post_count: { type: Number, default: 0 },
-  last_post_by: { type: String, required: false },
+  user_handle: String,
+  user_id: ObjectId,
+  reply_count: { type: Number, default: 0 },
+  last_post_author: { type: String, required: false },
   last_post_date: { type: Date, required: false }
 });
-boardSchema.path('title').validate(function(val) {
-  return val.length > 0
-}, 'Must provide a board title');
+threadSchema.path('title').validate(function(val) {
+  return val.length > 0;
+}, 'Must provide a thread title');
+
+var postSchema = Schema({
+  body_html: String,
+  user_handle: String,
+  user_id: ObjectId,
+  thread_id: ObjectId
+});
+postSchema.path('body_html').validate(val) {
+  return val.length > 0;
+}, 'Must provide a post body');
 
 var consumerSchema = Schema({
   api_key: String,
   api_secret: String,
   access_level: Number,
-  user_id: { type: Schema.Types.ObjectId, required: false }
+  user_id: { type: ObjectId, required: false }
 });
 
 // Use _id.getTimestamp() to get the date at which a session was created.
 var sessionSchema = Schema({
   api_token: String,
-  consumer_id: Schema.Types.ObjectId,
+  consumer_id: ObjectId,
   touch_date: { type: Date, default: Date.now }
 });
 
 var User = mongoose.model('User', userSchema);
 var Consumer = mongoose.model('Consumer', consumerSchema);
 var Session = mongoose.model('Session', sessionSchema);
-var Board = mongoose.model('Board', boardSchema);
+var Thread = mongoose.model('Thread', threadSchema);
+var Post = mongoose.model('Post', postSchema);
 
-function renderedBoard(board) {
-  var json = {
-    _id: board._id.toString(),
-    title: board.title,
-    subtitle: board.subtitle,
-    thread_count: board.thread_count,
-    post_count: board.post_count,
+function renderedPost(post) {
+  return {
+    _id: post._id.toString(),
+    body_html: post.body_html,
+    user_handle: post.user_handle,
+    user_id: post.user_id.toString(),
+    thread_id: post.thread_id.toString()
   };
-  if (board.last_post_by && board.last_post_date) {
+}
+function renderedThread(thread) {
+  var json = {
+    _id: thread._id.toString(),
+    title: thread.title,
+    user_handle: thread.user_handle,
+    user_id: thread.user_id.toString(),
+    reply_count: thread.reply_count
+  };
+  if (thread.last_post_author && thread.last_post_date) {
     json.last_post = {
-      by: board.last_post_by,
-      date: board.last_post_date.getTime()
+      author: thread.last_post_author,
+      date: thread.last_post_date.getTime()
     };
   }
   return json;
@@ -117,6 +137,16 @@ app.use(function(req, res, next) {
       response: { }
     });
   };
+  res.sendNotFound = function() {
+    res.send({
+      meta: {
+        code: statusCodes.NOT_FOUND,
+        errorType: 'not_found',
+        errorDetail: 'The requested resource was not found'
+      },
+      response: { }
+    });
+  }
   res.sendInsufficientParameters = function() {
     res.send({
       meta: {
@@ -167,7 +197,7 @@ app.use(function(req, res, next) {
           res.sendInternalServerError(err);
         } else if (session) {
           session.touch_date = Date.now();
-          session.save(function(err) { });
+          session.save();
           Consumer.findOne({ _id: session.consumer_id }, function(err, consumer) {
             if (err) {
               res.sendInternalServerError(err);
@@ -178,6 +208,19 @@ app.use(function(req, res, next) {
         } else res.sendNotAuthorized();
       });
     } else res.sendNotAuthorized();
+  };
+  res.withConsumerAndUser = function(callback) {
+    res.withConsumer(function(consumer) {
+      User.findOne({ _id: consumer.user_id }, function(err, user) {
+        if (err) {
+          res.sendInternalServerError(err);
+        } else if (user) {
+          callback(consumer, user);
+        } else {
+          res.sendInternalServerError(new Error("Couldn't find user for consumer"));
+        }
+      });
+    });
   };
   next();
 });
@@ -217,7 +260,7 @@ app.post('/revoke', function(req, res) {
 ///     The API secret for the consumer identified by that key.
 ///   </param>
 ///   <response>
-///     { "session": { "api_token": "String" } }
+///     { "api_token": "String" }
 ///   </response>
 /// </endpoint>
 app.post('/authenticate', function(req, res) {
@@ -404,21 +447,22 @@ app.post('/user/new', function(req, res) {
   } else res.sendInsufficientParameters();
 });
 
-app.post('/board/new', function(req, res) {
-  if (['title', 'subtitle'].every(curriedHas(req.body))) {
-    res.withConsumer(function(consumer) {
+app.post('/thread/new', function(req, res) {
+  if (['title'].every(curriedHas(req.body))) {
+    res.withConsumerAndUser(function(consumer, user) {
       if (consumer.access_level >= 0) {
-        var newBoard = new Board({
+        var newThread = new Thread({
           title: req.body.title,
-          subtitle: req.body.subtitle
+          user_handle: user.handle,
+          user_id: user._id
         });
-        newBoard.save(function(err, board) {
+        newThread.save(function(err, thread) {
           if (err) {
-            res.maybeSendValidationError(err);
+            maybeSendValidationError(err);
           } else {
             res.send({
               meta: { code: statusCodes.OK },
-              response: { board: renderedBoard(board) }
+              response: { thread: renderedThread(thread) }
             });
           }
         });
@@ -427,18 +471,105 @@ app.post('/board/new', function(req, res) {
   } else res.sendInsufficientParameters();
 });
 
-app.get('/boards', function(req, res) {
+app.get('/threads', function(req, res) {
   res.withConsumer(function(consumer) {
     if (consumer.access_level >= 0) {
-      Board.find({ }, function(err, boards) {
+      Thread.find({ }, function(err, threads) {
         if (err) {
           res.sendInternalServerError(err);
         } else {
           res.send({
             meta: { code: statusCodes.OK },
-            response: { boards: boards.map(renderedBoard) }
+            response: { threads: threads.map(renderedThread) }
           });
         }
+      });
+    } else res.sendNotAuthorized();
+  });
+});
+
+app.get('/thread/:id', function(req, res) {
+  res.withConsumer(function(consumer) {
+    if (consumer.access_level >= 0) {
+      Thread.findOne({ _id: req.params.id }, function(err, thread) {
+        if (err) {
+          res.sendInternalServerError(err);
+        } else if (thread) {
+          Post.find({ thread_id: thread._id }, function(err, posts) {
+            if (err) {
+              res.sendInternalServerError(err);
+            } else {
+              res.send({
+                meta: { code: statusCodes.OK },
+                response: {
+                  thread: renderedThread(thread),
+                  posts: posts.map(renderedPost)
+                }
+              });
+            }
+          });
+        } else res.sendNotFound();
+      });
+    } else res.sendNotAuthorized();
+  });
+});
+
+app.post('/post/new', function(req, res) {
+  if (['body_html', 'thread_id'].every(curriedHas(req.body))) {
+    res.withConsumerAndUser(function(consumer, user) {
+      if (consumer.access_level >= 0) {
+        Thread.findOne({ _id: req.body.thread_id }, function(err, thread) {
+          if (err) {
+            res.sendInternalServerError(err);
+          } else if (thread) {
+            var newPost = new Post({
+              body_html: req.body.body_html,
+              user_handle: user.handle,
+              user_id: user._id,
+              thread_id: thread._id
+            });
+            newPost.save(function(err, post) {
+              if (err) {
+                res.maybeSendValidationError(err);
+              } else {
+                // Make a best-effort attempt to update the thread reply count
+                // according to the # of posts associated with it.
+                Post.find({ thread_id: thread._id }, function(err, posts) {
+                  if (!err) {
+                    thread.reply_count += posts.length;
+                    thread.last_post_author = user.handle;
+                    thread.last_post_date = Date.now();
+                    thread.save();
+                  }
+                  res.send({
+                    meta: { code: statusCodes.OK },
+                    response: {
+                      post: renderedPost(post),
+                      thread: renderedThread(thread)
+                    }
+                  });
+                });
+              }
+            });
+          } else res.sendNotFound();
+        });
+      } else res.sendNotAuthorized();
+    });
+  } else res.sendInsufficientParameters();
+});
+
+app.get('/post/:id', function(req, res) {
+  res.withConsumer(function(consumer) {
+    if (consumer.access_level >= 0) {
+      Post.findOne({ _id: req.params.id }, function(err, post) {
+        if (err) {
+          res.sendInternalServerError(err);
+        } else if (post) {
+          res.send({
+            meta: { code: statusCodes.OK },
+            response: { post: renderedPost(post) }
+          });
+        } else res.sendNotFound();
       });
     } else res.sendNotAuthorized();
   });
