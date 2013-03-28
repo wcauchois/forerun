@@ -1,4 +1,6 @@
 #!/bin/bash
+# NOTE this script should be used for PRODUCTION only
+# for development, just run `foreman start` yourself
 
 if [ -f $HOME/run/forerun.pid ]; then
   if pgrep -F $HOME/run/forerun.pid >/dev/null; then
@@ -20,6 +22,7 @@ case $1 in
         exit 0
         ;;
       stopped)
+        export NODE_ENV=production
         nohup foreman start >log/out.log 2>log/error.log &
         if [ $? -eq 0 ]; then
           echo $! >$HOME/run/forerun.pid
