@@ -1,0 +1,10 @@
+#!/bin/bash
+
+source ~/.bash_profile
+export PATH="/usr/local/bin:$PATH"
+cd
+rm -rf forerun
+git clone forerun.git forerun
+cd forerun
+./scripts/ctl.sh restart
+
