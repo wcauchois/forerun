@@ -18,11 +18,6 @@ var append = basics.append,
     curriedHas = basics.curriedHas;
 
 var app = express();
-// http://clock.co.uk/tech-blogs/preventing-http-raise-hangup-error-on-destroyed-socket-write-from-crashing-your-nodejs-server
-var serverDomain = domain.create();
-serverDomain.on('error', function(err) {
-  console.error('Server error', err.code, err.message, req.url);
-});
 var emitter = new events.EventEmitter();
 
 function sourceDir(name) {
@@ -332,22 +327,7 @@ authenticateWithRetries(
     process.exit(1);
   } else {
     app.set('api_token', api_token);
-    serverDomain.run(function() {
-      var server = http.createServer(function(req, res) {
-        var reqd = domain.create();
-        reqd.add(req);
-        reqd.add(res);
-        // On error dispose of the domain
-        reqd.on('error', function(err) {
-          console.error('Handler error', err.code, err.message, req.url);
-          reqd.dispose();
-        });
-        // Pass the request to express
-        app(req, res);
-      });
-      server.listen(config.frontend_server.port);
-      //var io = require('socket.io').listen(server);
-      //setupSockets(io);
+    app.listen(config.frontend_server.port);
       console.log('Using API token: ' + api_token);
       console.log('Listening on port ' + config.frontend_server.port);
     });
