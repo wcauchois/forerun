@@ -289,6 +289,8 @@ function matchesScope(data, scope) {
 }
 
 function setupSockets(io) {
+  io.on('error', function(err) { console.log("FUCK"); console.log(err); });
+  io.of('/threads').on('error', function(err) { console.log("FUCK"); console.log(err); });
   io.of('/threads').on('connection', function(socket) {
     socket.on('error', function(err) { console.error(err); });
     socket.once('scope', function(scope) {
