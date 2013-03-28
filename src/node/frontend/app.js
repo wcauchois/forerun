@@ -20,6 +20,9 @@ var append = basics.append,
 var app = express();
 // http://clock.co.uk/tech-blogs/preventing-http-raise-hangup-error-on-destroyed-socket-write-from-crashing-your-nodejs-server
 var serverDomain = domain.create();
+serverDomain.on('error', function(err) {
+  console.error('Server error', err.code, err.message, req.url);
+});
 var emitter = new events.EventEmitter();
 
 function sourceDir(name) {
@@ -332,7 +335,7 @@ authenticateWithRetries(
         reqd.add(res);
         // On error dispose of the domain
         reqd.on('error', function(err) {
-          console.error('Error', err.code, err.message, req.url);
+          console.error('Handler error', err.code, err.message, req.url);
           reqd.dispose();
         });
         // Pass the request to express
