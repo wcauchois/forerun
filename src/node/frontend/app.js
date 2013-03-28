@@ -340,6 +340,8 @@ authenticateWithRetries(
       });
       server.listen(config.frontend_server.port);
       var io = require('socket.io').listen(server);
+      serverDomain.add(io);
+      serverDomain.add(emitter);
       setupSockets(io);
       console.log('Using API token: ' + api_token);
       console.log('Listening on port ' + config.frontend_server.port);
