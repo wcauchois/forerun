@@ -9,7 +9,8 @@ var express = require('express'),
     config = require('config'),
     http = require('http'),
     url = require('url'),
-    events = require('events');
+    events = require('events'),
+    md = require('node-markdown').Markdown;
 
 var append = basics.append,
     merge = basics.merge,
@@ -157,49 +158,29 @@ app.get('/', function(req, res) {
 app.get('/thread/:id', function(req, res) {
   res.withUser(function(user, client) {
     client.thread.get(req.params.id, function(err, meta, response) {
+      res.sendNotFound();
     });
   });
 });
 
-app.get('/board/:id', function(req, res) {
-  res.withUser(function (user, client) {
-    client.board.get(req.params.id, function(err, meta, response) {
-      if (err) {
-        res.sendInternalServerError(err);
-      } else {
-        if (meta.code == statusCodes.NOT_FOUND) {
-          res.sendNotFound();
-        } else if (meta.code != statusCodes.OK) {
-          // XXX better error reporting in these types of cases? i don't know
-          res.flash('error', "We couldn't access that board for you");
-          res.redirect('/');
-        } else {
-          res.renderWithChrome('board-page', {
-            board: response.board,
-            threads: response.threads
-          });
-        }
-      }
-    });
-  });
-});
-
-app.post('/board/new', function(req, res) {
-  if (['title', 'subtitle'].every(curriedHas(req.body))) {
+app.post('/thread/new', function(req, res) {
+  if (['title', 'body_markdown'].every(curriedHas(req.body))) {
     res.withUser(function(user, client) {
-      client.board.new(req.body.title, req.body.subtitle,
+      client.thread.new_(req.body.title, req.body.subtitle,
           function(err, meta, response) {
         if (err) {
           res.sendInternalServerError(err);
         } else {
           if (meta.code != statusCodes.OK) {
-            if (meta.errorType == 'param_error') {
-              res.flash('error', 'Please provide a title for the new board');
+            console.log(meta);
+            if (meta.errorType == 'param_error' &&
+                meta.paramErrors.some(function(err) { return err.param == 'title' })) {
+              res.flash('error', 'Please provide a title for your thread');
             } else {
-              res.flash('error', "Sorry, we couldn't create the board. Try again?");
+              res.flash('error', "Sorry, we couldn't create your thread. Try again?");
             }
-          }
-          res.redirect('/');
+            res.redirect('/');
+          } else res.redirect('/thread/' + response.thread._id);
         }
       });
     });

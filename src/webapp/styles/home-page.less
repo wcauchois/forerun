@@ -16,18 +16,48 @@
 .center {
   text-align: center;
 }
+
 .header {
   font-weight: bold;
 }
-.board {
-  margin-top: 10px;
-}
-#new-board-button {
-  width: 40px;
-  float: right;
+
+.new-thread-button-container {
+  margin-bottom: 10px;
+  #new-thread-button {
+    width: 32px;
+    height: 29px;
+    float: right;
+  }
 }
 
-#new-board-form form {
-  margin-top: 10px;
+#thread-compose-form {
+  form {
+    margin-bottom: 0;
+    textarea {
+      overflow: hidden;
+      font-family: monospace;
+    }
+  }
+  .expand-preview, .collapse-preview {
+    text-decoration: none;
+  }
+
+  #markdown-preview {
+    border: 2px solid #F1C40F;
+    border-radius: 6px;
+    word-wrap: break-word;
+    margin: 5px 0 5px 0;
+    padding: 5px;
+  }
+
+  input[type='submit'] {
+    width: 100px;
+    margin: 10px 0 10px 0;
+  }
+}
+
+.arrow-entity {
+  position: relative;
+  top: -1px;
 }
 

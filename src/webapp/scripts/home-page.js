@@ -1,17 +1,24 @@
 
 forerun.views.HomePage = forerun.views.Page.extend({
   events: {
-    //'click #new-board-button': 'toggleNewBoardForm'
+    'click #new-thread-button': 'toggleThreadComposeForm'
   },
   initialize: function(options) {
-    this.newThreadsBar = new forerun.views.NewThreadsBar({
-      el: $('#new-threads-bar'),
-      pendingThreadsShower: _.bind(this.showPendingThreads, this)
-    });
     this.pendingThreads = [];
     this.socket = io.connect(options.config.socket_host + '/threads');
     this.socket.emit('scope', { });
     this.socket.on('new-thread', _.bind(this.onNewThread, this));
+  },
+  render: function() {
+    this.newThreadsBar = new forerun.views.NewThreadsBar({
+      el: this.$('#new-threads-bar'),
+      pendingThreadsShower: _.bind(this.showPendingThreads, this)
+    });
+    this.threadComposeForm = new forerun.views.ThreadComposeForm({
+      el: this.$('#thread-compose-form')
+    });
+    this.$('#thread-compose-form textarea').autogrow();
+    return this;
   },
   onNewThread: function(thread) {
     this.pendingThreads.push(thread);
@@ -21,17 +28,13 @@ forerun.views.HomePage = forerun.views.Page.extend({
     this.pendingThreads.forEach(function(thread) {
       var rowDiv = $('<div class="row thread"></div>');
       rowDiv.html(forerun.templates.thread(thread));
-      rowDiv.insertAfter($('#new-threads-bar'));
+      rowDiv.insertAfter(this.$('#new-threads-bar'));
     });
     this.pendingThreads = [];
-  }
-  /*
-  initialize: function(options) {
-    this.newBoardForm = new forerun.views.NewBoardForm({ el: $('#new-board-form') });
   },
-  toggleNewBoardForm: function() {
-    this.newBoardForm.toggle();
-  }*/
+  toggleThreadComposeForm: function() {
+    this.threadComposeForm.toggle();
+  }
 });
 
 forerun.views.NewThreadsBar = Backbone.View.extend({
@@ -66,17 +69,48 @@ forerun.views.NewThreadsBar = Backbone.View.extend({
   }
 });
 
-/*
-forerun.views.NewBoardForm = forerun.views.Drawer.extend({
+forerun.views.MarkdownPreview = Backbone.View.extend({
+  initialize: function(options) {
+    this.converter = new Showdown.converter();
+    this.textarea = options.textarea;
+    this.textarea.keyup(_.bind(this.updatePreview, this));
+  },
+  hide: function() { this.$el.hide(); },
+  show: function() { this.$el.show(); },
+  updatePreview: function() {
+    this.$el.html(this.converter.makeHtml(this.textarea.val()));
+  }
+});
+
+forerun.views.ThreadComposeForm = forerun.views.Drawer.extend({
+  events: {
+    'click .collapse-preview': 'collapsePreview',
+    'click .expand-preview': 'expandPreview'
+  },
+  expandPreview: function() {
+    this.markdownPreview.show();
+    this.$collapsePreview.show();
+    this.$expandPreview.hide();
+  },
+  collapsePreview: function() {
+    this.markdownPreview.hide();
+    this.$collapsePreview.hide();
+    this.$expandPreview.show();
+  },
+  initialize: function(options) {
+    forerun.views.Drawer.prototype.initialize.apply(this, [options]);
+  },
   render: function() {
-    this.$el.html(forerun.templates.newBoardForm());
+    this.$el.html(forerun.templates.threadComposeForm());
+    this.markdownPreview = new forerun.views.MarkdownPreview({
+      el: this.$('#markdown-preview'),
+      textarea: this.$('textarea')
+    });
+    this.markdownPreview.hide();
+    this.$collapsePreview = this.$('.collapse-preview');
+    this.$expandPreview = this.$('.expand-preview');
+    this.$collapsePreview.hide();
     return this;
   }
 });
-*/
-
-// XXX hacky
-//var socket = io.connect('http://localhost:3000/threads');
-//socket.emit('scope', { });
-//socket.on('new-thread', function() { alert('YOOYOYO'); });
 

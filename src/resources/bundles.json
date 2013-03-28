@@ -21,6 +21,8 @@
       "/scripts/3rdparty/mustache.js",
       "/scripts/3rdparty/socket.io.min.js",
       "/scripts/3rdparty/jquery.timeago.js",
+      "/scripts/3rdparty/autogrow.min.js",
+      "/scripts/3rdparty/showdown.js",
 
       "/scripts/chrome.js"
     ],
@@ -44,7 +46,11 @@
     "template": "home-page.mustache",
     "styles": ["/styles/home-page.less"],
     "scripts": ["/scripts/home-page.js"],
-    "clientTemplates": ["thread.mustache", "newThreadsBar.mustache"]
+    "clientTemplates": [
+      "thread.mustache",
+      "threadComposeForm.mustache",
+      "newThreadsBar.mustache"
+    ]
   },
   "api-reference-page": {
     "template": "api-reference-page.mustache"

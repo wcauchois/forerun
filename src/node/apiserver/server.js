@@ -481,7 +481,7 @@ app.post('/thread/new', function(req, res) {
         var newThread = new Thread(threadDoc);
         newThread.save(function(err, thread) {
           if (err) {
-            maybeSendValidationError(err);
+            res.maybeSendValidationError(err);
           } else {
             function respond(postOpt) {
               var responseJson = { thread: renderedThread(thread) };
@@ -520,6 +520,9 @@ app.get('/threads', function(req, res) {
         if (err) {
           res.sendInternalServerError(err);
         } else {
+          threads.sort(function(x, y) {
+            return y._id.getTimestamp() - x._id.getTimestamp();
+          });
           res.send({
             meta: { code: statusCodes.OK },
             response: { threads: threads.map(renderedThread) }

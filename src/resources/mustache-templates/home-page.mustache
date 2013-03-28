@@ -46,11 +46,35 @@
 {{/boards}}
 -->
 
+<div class="row new-thread-button-container">
+  <div class="span1"></div>
+  <div class="span10">
+    <a href="#" id="new-thread-button" title="New Thread"
+      class="btn btn-block btn-primary">
+      <span class="fui-plus-16"></span>
+    </a>
+  </div>
+  <div class="span1"></div>
+</div>
+<div class="row thread-compose-container">
+  <div class="span5"></div>
+  <div class="span6" id="thread-compose-form"></div>
+  <div class="span1"></div>
+</div>
+<!--
+<div class="row" style="margin-bottom: 5px;">
+  <div class="span8"></div>
+  <div class="span4" id="new-board-form"></div>
+</div>
+-->
+
 <div class="row">
-  <div class="span7 header">Thread</div>
+  <div class="span1"></div>
+  <div class="span5 header">Thread</div>
   <div class="span1 header">User</div>
   <div class="span1 header">Replies</div>
   <div class="span3 header">Last Post</div>
+  <div class="span1"></div>
 </div>
 
 <div class="row" id="new-threads-bar"></div>
@@ -65,6 +89,6 @@
   var currentPage = new forerun.views.HomePage({
     el: $('#page'),
     config: {{{config_json}}}
-  });
+  }).render();
 </script>
 
