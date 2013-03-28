@@ -8,7 +8,8 @@ var express = require('express'),
     config = require('config'),
     events = require('events'),
     url = require('url'),
-    http = require('http');
+    http = require('http'),
+    md = require('node-markdown').Markdown;
 
 var curriedHas = basics.curriedHas,
     merge = basics.merge,
@@ -493,9 +494,8 @@ app.post('/thread/new', function(req, res) {
               });
             }
             if (req.body.body_markdown) {
-              // Make a best-effort attempt to create the original post
               var newPost = new Post({
-                body_html: req.body.body_markdown,
+                body_html: md(req.body.body_markdown, true),
                 user_handle: user.handle,
                 user_id: user._id,
                 thread_id: thread._id
@@ -568,7 +568,7 @@ app.post('/post/new', function(req, res) {
             res.sendInternalServerError(err);
           } else if (thread) {
             var newPost = new Post({
-              body_html: req.body.body_markdown,
+              body_html: md(req.body.body_markdown, true),
               user_handle: user.handle,
               user_id: user._id,
               thread_id: thread._id
