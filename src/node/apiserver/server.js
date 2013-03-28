@@ -74,7 +74,7 @@ var sessionSchema = Schema({
   touch_date: { type: Date, default: Date.now }
 });
 
-var streamReceiverSchema = Schema({
+var listenerSchema = Schema({
   consumer_id: ObjectId,
   endpoint: String,
 });
@@ -84,7 +84,7 @@ var Consumer = mongoose.model('Consumer', consumerSchema);
 var Session = mongoose.model('Session', sessionSchema);
 var Thread = mongoose.model('Thread', threadSchema);
 var Post = mongoose.model('Post', postSchema);
-var StreamReceiver = mongoose.model('StreamReceiver', streamReceiverSchema);
+var Listener = mongoose.model('Listener', listenerSchema);
 
 function renderedPost(post) {
   return {
@@ -621,25 +621,25 @@ app.get('/post/:id', function(req, res) {
   });
 });
 
-app.post('/stream/register-receiver', function(req, res) {
+app.post('/listener/register', function(req, res) {
   if (['endpoint'].every(curriedHas(req.body))) {
     res.withConsumer(function(consumer) {
       // XXX might want to rethink this access level restriction
       if (consumer.access_level >= 2) {
-        StreamReceiver.findOne({ consumer_id: consumer._id },
-            function(err, streamReceiver) {
+        Listener.findOne({ consumer_id: consumer._id },
+            function(err, listener) {
           if (err) {
             res.sendInternalServerError(err);
           } else {
-            if (streamReceiver) {
-              streamReceiver.endpoint = req.body.endpoint;
+            if (listener) {
+              listener.endpoint = req.body.endpoint;
             } else {
-              streamReceiver = new StreamReceiver({
+              listener = new Listener({
                 consumer_id: consumer._id,
                 endpoint: req.body.endpoint
               });
             }
-            streamReceiver.save(function(err) {
+            listener.save(function(err) {
               if (err) {
                 res.sendInternalServerError(err);
               } else {
@@ -656,17 +656,17 @@ app.post('/stream/register-receiver', function(req, res) {
   } else res.sendInsufficientParameters();
 });
 
-app.post('/stream/unregister-receiver', function(req, res) {
+app.post('/listener/unregister', function(req, res) {
   // TODO
 });
 
-function callStreamReceivers(data) {
-  StreamReceiver.find({ }, function(err, receivers) {
+function callListeners(data) {
+  Listener.find({ }, function(err, listeners) {
     if (!err) {
-      receivers.forEach(function(receiver) {
-        Consumer.findOne({ _id: receiver.consumer_id }, function(err, consumer) {
+      listeners.forEach(function(listener) {
+        Consumer.findOne({ _id: listener.consumer_id }, function(err, consumer) {
           if (!err && consumer) {
-            var options = url.parse(receiver.endpoint);
+            var options = url.parse(listener.endpoint);
             options['method'] = 'POST';
             var req = http.request(options, function(res) {
               // TODO we're gonna wanna track failures and back off
@@ -682,7 +682,7 @@ function callStreamReceivers(data) {
 }
 
 emitter.on('new-thread', function(thread) {
-  callStreamReceivers({
+  callListeners({
     type: 'new-thread',
     thread: renderedThread(thread)
   });

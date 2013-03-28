@@ -99,10 +99,10 @@ function postEndpoints(service) {
   };
 }
 
-function streamEndpoints(service) {
+function listenerEndpoints(service) {
   return {
-    registerReceiver: function(endpoint, callback) {
-      service('POST', '/stream/register-receiver', {
+    register: function(endpoint, callback) {
+      service('POST', '/listener/register', {
         endpoint: endpoint
       }, callback);
     }
@@ -119,7 +119,7 @@ exports.Client = function(api_token) {
     user: userEndpoints(service),
     thread: threadEndpoints(service),
     post: postEndpoints(service),
-    stream: streamEndpoints(service),
+    listener: listenerEndpoints(service),
     revoke: function(callback) {
       service('POST', '/revoke', { api_token: api_token }, callback);
     }

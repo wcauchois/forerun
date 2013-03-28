@@ -29,7 +29,7 @@ app.use(express.static(sourceDir('webapp')));
 app.use((function() {
   var bodyParser = express.bodyParser();
   return function(req, res, next) {
-    if (req.path == '/stream-receiver') {
+    if (req.path == '/receiver') {
       req.setEncoding('utf8');
       req.on('readable', function() {
         req.data = JSON.parse(req.read());
@@ -270,7 +270,7 @@ app.post('/signup', function(req, res) {
   } else res.sendBadRequest();
 });
 
-app.post('/stream-receiver', function(req, res) {
+app.post('/listener', function(req, res) {
   if (req.data.type && req.data.api_secret == config.frontend_server.api_secret) {
     emitter.emit(req.data.type, req.data);
   }
@@ -328,19 +328,18 @@ authenticateWithRetries(
   } else {
     app.set('api_token', api_token);
     app.listen(config.frontend_server.port);
-      console.log('Using API token: ' + api_token);
-      console.log('Listening on port ' + config.frontend_server.port);
-    });
+    console.log('Using API token: ' + api_token);
+    console.log('Listening on port ' + config.frontend_server.port);
 
-    api.Client(api_token).stream.registerReceiver(
+    api.Client(api_token).listener.register(
         url.format({
           protocol: 'http',
           hostname: config.frontend_server.receiver_hostname,
           port: config.frontend_server.receiver_port,
-          pathname: '/stream-receiver'
+          pathname: '/listener'
         }), function(err, meta, response) {
       if (err || meta.code != statusCodes.OK) {
-        console.error("Couldn't register stream receiver");
+        console.error("Couldn't register listener");
       }
     });
   }
