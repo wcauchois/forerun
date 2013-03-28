@@ -28,7 +28,7 @@ function rawService(method, path, params, callback) {
   var req = http.request(options, function(res) {
     if (res.statusCode == statusCodes.OK) {
       res.setEncoding('utf8');
-      // TODO handle res.error here?
+      res.on('error', function(err) { callback(err); });
       res.on('readable', function() {
         var raw = res.read();
         var json = null;
