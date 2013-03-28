@@ -5,6 +5,7 @@ export PATH="/usr/local/bin:$PATH"
 cd
 rm -rf forerun
 git clone forerun.git forerun
+cp forerun_config.json forerun/config/production.json
 cd forerun
 ./scripts/ctl.sh restart
 
