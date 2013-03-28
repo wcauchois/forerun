@@ -10,15 +10,16 @@ var express = require('express'),
     http = require('http'),
     url = require('url'),
     events = require('events'),
-    md = require('node-markdown').Markdown;
+    md = require('node-markdown').Markdown,
+    domain = require('domain');
 
 var append = basics.append,
     merge = basics.merge,
     curriedHas = basics.curriedHas;
 
 var app = express();
-var server = http.createServer(app);
-var io = require('socket.io').listen(server);
+// http://clock.co.uk/tech-blogs/preventing-http-raise-hangup-error-on-destroyed-socket-write-from-crashing-your-nodejs-server
+var serverDomain = domain.create();
 var emitter = new events.EventEmitter();
 
 function sourceDir(name) {
@@ -284,20 +285,22 @@ function matchesScope(data, scope) {
   return true;
 }
 
-io.of('/threads').on('connection', function(socket) {
-  socket.on('error', function(err) { console.error(err); });
-  socket.once('scope', function(scope) {
-    var newThreadListener = function(data) {
-      if (matchesScope(data.thread, scope)) {
-        socket.emit('new-thread', data.thread);
-      }
-    };
-    emitter.on('new-thread', newThreadListener);
-    socket.on('disconnect', function() {
-      emitter.removeListener('new-thread', newThreadListener);
+function setupSockets(io) {
+  io.of('/threads').on('connection', function(socket) {
+    socket.on('error', function(err) { console.error(err); });
+    socket.once('scope', function(scope) {
+      var newThreadListener = function(data) {
+        if (matchesScope(data.thread, scope)) {
+          socket.emit('new-thread', data.thread);
+        }
+      };
+      emitter.on('new-thread', newThreadListener);
+      socket.on('disconnect', function() {
+        emitter.removeListener('new-thread', newThreadListener);
+      });
     });
   });
-});
+}
 
 function authenticateWithRetries(api_key, api_secret, numRetries, callback) {
   if (numRetries == 0) {
@@ -322,9 +325,25 @@ authenticateWithRetries(
     process.exit(1);
   } else {
     app.set('api_token', api_token);
-    server.listen(config.frontend_server.port);
-    console.log('Using API token: ' + api_token);
-    console.log('Listening on port ' + config.frontend_server.port);
+    serverDomain.run(function() {
+      var server = http.createServer(function(req, res) {
+        var reqd = domain.create();
+        reqd.add(req);
+        reqd.add(res);
+        // On error dispose of the domain
+        reqd.on('error', function(err) {
+          console.error('Error', err.code, err.message, req.url);
+          reqd.dispose();
+        });
+        // Pass the request to express
+        app(req, res);
+      });
+      server.listen(config.frontend_server.port);
+      var io = require('socket.io').listen(server);
+      setupSockets(io);
+      console.log('Using API token: ' + api_token);
+      console.log('Listening on port ' + config.frontend_server.port);
+    });
 
     api.Client(api_token).stream.registerReceiver(
         url.format({
