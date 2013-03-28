@@ -288,6 +288,7 @@ function matchesScope(data, scope) {
   return true;
 }
 
+/*
 function setupSockets(io) {
   io.on('error', function(err) { console.log("FUCK"); console.log(err); });
   io.of('/threads').on('error', function(err) { console.log("FUCK"); console.log(err); });
@@ -306,6 +307,7 @@ function setupSockets(io) {
     });
   });
 }
+*/
 
 function authenticateWithRetries(api_key, api_secret, numRetries, callback) {
   if (numRetries == 0) {
@@ -344,10 +346,8 @@ authenticateWithRetries(
         app(req, res);
       });
       server.listen(config.frontend_server.port);
-      var io = require('socket.io').listen(server);
-      serverDomain.add(io);
-      serverDomain.add(emitter);
-      setupSockets(io);
+      //var io = require('socket.io').listen(server);
+      //setupSockets(io);
       console.log('Using API token: ' + api_token);
       console.log('Listening on port ' + config.frontend_server.port);
     });

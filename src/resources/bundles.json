@@ -19,7 +19,6 @@
       "/scripts/3rdparty/less.min.js",
       "/scripts/3rdparty/backbone-min.js",
       "/scripts/3rdparty/mustache.js",
-      "/socket.io/socket.io.js",
       "/scripts/3rdparty/jquery.timeago.js",
       "/scripts/3rdparty/autogrow.min.js",
       "/scripts/3rdparty/showdown.js",

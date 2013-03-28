@@ -5,9 +5,9 @@ forerun.views.HomePage = forerun.views.Page.extend({
   },
   initialize: function(options) {
     this.pendingThreads = [];
-    this.socket = io.connect(options.config.socket_host + '/threads');
+    /*this.socket = io.connect(options.config.socket_host + '/threads');
     this.socket.emit('scope', { });
-    this.socket.on('new-thread', _.bind(this.onNewThread, this));
+    this.socket.on('new-thread', _.bind(this.onNewThread, this));*/
   },
   render: function() {
     this.newThreadsBar = new forerun.views.NewThreadsBar({
