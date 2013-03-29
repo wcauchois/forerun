@@ -44,7 +44,7 @@ forerun.views.SignupForm = forerun.views.Drawer.extend({
   showFieldErrors: function() {
     var $submit = this.$('#submit');
     var valid = true;
-    _.forEach(['handle', 'email'], function(field) {
+    _.each(['handle', 'email'], function(field) {
       var $field = $('#' + field);
       if ($field.val().length > 0 &&
           !forerun.views.SignupForm.REGEXES[field].test($field.val())) {
