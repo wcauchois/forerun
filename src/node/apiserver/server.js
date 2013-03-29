@@ -581,7 +581,7 @@ app.post('/post/new', function(req, res) {
                 // according to the # of posts associated with it.
                 Post.find({ thread_id: thread._id }, function(err, posts) {
                   if (!err) {
-                    thread.reply_count += posts.length;
+                    thread.reply_count = posts.length;
                     thread.last_post_author = user.handle;
                     thread.last_post_date = Date.now();
                     thread.save();
