@@ -24,10 +24,10 @@
   </div>
 {{/posts}}
 
-<div class="row">
+<div class="row" id="reply">
   <div class="span1"></div>
   <div class="span10">
-    <a href="#" id="reply-button" class="btn btn-block btn-primary">Reply</a>
+    <a href="#reply" id="reply-button" class="btn btn-block btn-primary">Reply</a>
   </div>
   <div class="span1"></div>
 </div>
@@ -37,6 +37,8 @@
   <div class="span10 compose-form" id="post-compose-form"></div>
   <div class="span1"></div>
 </div>
+
+<div class="row" style="height: 40px;"></div>
 
 <script type="text/javascript">
   var currentPage = new forerun.views.ThreadPage({
