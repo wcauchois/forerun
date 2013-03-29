@@ -9,8 +9,18 @@
 </div>
 
 {{#posts}}
-  <div class="row">
-    this be a post
+  <div class="row post-container">
+    <div class="span1"></div>
+    <div class="span10 post">
+      <div class="post-author">
+        <span class="fui-man-16"></span>
+        <a href="/user/{{user_id}}">{{user_handle}}</a>
+      </div>
+      <div class="post-body">
+        {{{body_html}}}
+      </div>
+    </div>
+    <div class="span1"></div>
   </div>
 {{/posts}}
 
@@ -22,13 +32,16 @@
   <div class="span1"></div>
 </div>
 
-<div class="row post-compose-container">
-  <div class="span12 compose-form" id="post-compose-form"></div>
+<div class="row post-compose-container" id="compose">
+  <div class="span1"></div>
+  <div class="span10 compose-form" id="post-compose-form"></div>
+  <div class="span1"></div>
 </div>
 
 <script type="text/javascript">
   var currentPage = new forerun.views.ThreadPage({
     el: $('#page'),
+    threadId: "{{thread._id}}",
     config: {{{config_json}}}
   }).render();
 </script>

@@ -177,13 +177,12 @@ app.get('/thread/:id', function(req, res) {
 app.post('/thread/new', function(req, res) {
   if (['title', 'body_markdown'].every(curriedHas(req.body))) {
     res.withUser(function(user, client) {
-      client.thread.new_(req.body.title, req.body.subtitle,
+      client.thread.new_(req.body.title, req.body.body_markdown,
           function(err, meta, response) {
         if (err) {
           res.sendInternalServerError(err);
         } else {
           if (meta.code != statusCodes.OK) {
-            console.log(meta);
             if (meta.errorType == 'param_error' &&
                 meta.paramErrors.some(function(err) { return err.param == 'title' })) {
               res.flash('error', 'Please provide a title for your thread');
@@ -192,6 +191,24 @@ app.post('/thread/new', function(req, res) {
             }
             res.redirect('/');
           } else res.redirect('/thread/' + response.thread._id);
+        }
+      });
+    });
+  } else res.sendBadRequest();
+});
+
+app.post('/post/new', function(req, res) {
+  if (['body_markdown', 'thread_id'].every(curriedHas(req.body))) {
+    res.withUser(function(user, client) {
+      client.post.new_(req.body.thread_id, req.body.body_markdown,
+          function(err, meta, response) {
+        if (err) {
+          res.sendInternalServerError(err);
+        } else {
+          if (meta.code != statusCodes.OK) {
+            res.flash('error', "Sorry, we couldn't make your post");
+          }
+          res.redirect('/thread/' + req.body.thread_id);
         }
       });
     });

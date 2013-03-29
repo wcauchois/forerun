@@ -87,9 +87,9 @@ function threadEndpoints(service) {
 
 function postEndpoints(service) {
   return {
-    new_: function(body_html, thread_id, callback) {
+    new_: function(thread_id, body_markdown, callback) {
       service('POST', '/post/new', {
-        body_html: body_html,
+        body_markdown: body_markdown,
         thread_id: thread_id
       }, callback);
     },

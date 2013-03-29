@@ -486,7 +486,7 @@ app.post('/thread/new', function(req, res) {
           } else {
             function respond(postOpt) {
               var responseJson = { thread: renderedThread(thread) };
-              if (postOpt) responseJson.post = renderedPost(post);
+              if (postOpt) responseJson.post = renderedPost(postOpt);
               emitter.emit('new-thread', thread, postOpt);
               res.send({
                 meta: { code: statusCodes.OK },

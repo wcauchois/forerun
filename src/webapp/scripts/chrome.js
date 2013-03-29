@@ -66,10 +66,22 @@ forerun.views.MarkdownPreview = Backbone.View.extend({
 forerun.views.ComposeForm = forerun.views.Drawer.extend({
   events: {
     'click .collapse-preview': 'collapsePreview',
-    'click .expand-preview': 'expandPreview'
+    'click .expand-preview': 'expandPreview',
+    'click .collapse-help': 'collapseHelp',
+    'click .expand-help': 'expandHelp'
   },
   initialize: function(options) {
     forerun.views.Drawer.prototype.initialize.apply(this, [options]);
+  },
+  expandHelp: function() {
+    this.$('#formatting-help').html(forerun.templates.formattingHelp());
+    this.$collapseHelp.show();
+    this.$expandHelp.hide();
+  },
+  collapseHelp: function() {
+    this.$('#formatting-help').html('');
+    this.$collapseHelp.hide();
+    this.$expandHelp.show();
   },
   expandPreview: function() {
     this.markdownPreview.show();
@@ -82,18 +94,25 @@ forerun.views.ComposeForm = forerun.views.Drawer.extend({
     this.$expandPreview.show();
   },
   getTemplate: function() { /* override */ },
+  getOptions: function() { return { } },
   render: function() {
-    this.$el.html(this.getTemplate()({
+    this.$el.html(this.getTemplate()(_.extend({
       composer_info: forerun.templates.composerInfo()
-    }));
+    }, this.getOptions())));
     this.markdownPreview = new forerun.views.MarkdownPreview({
       el: this.$('#markdown-preview'),
       textarea: this.$('textarea')
     });
     this.markdownPreview.hide();
+
     this.$collapsePreview = this.$('.collapse-preview');
     this.$expandPreview = this.$('.expand-preview');
     this.$collapsePreview.hide();
+
+    this.$collapseHelp = this.$('.collapse-help');
+    this.$expandHelp = this.$('.expand-help');
+    this.$collapseHelp.hide();
+
     this.$('textarea').autogrow();
     return this;
   }

@@ -1,5 +1,6 @@
 <form action="/post/new" method="POST">
-  <textarea name="body_markdown" rows="2"></textarea>
+  <textarea name="body_markdown" class="span6" rows="2"></textarea>
+  <input type="hidden" name="thread_id" value="{{thread_id}}">
   {{{composer_info}}}
   <input type="submit" class="btn btn-success btn-block" value="Submit">
 </form>
