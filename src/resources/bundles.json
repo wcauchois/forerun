@@ -26,10 +26,16 @@
       "/scripts/chrome.js"
     ],
     "clientTemplates": ["flashMessage.mustache"],
-    "partials": ["thread.mustache"]
+    "partials": ["threadRow.mustache"]
   },
-  "board-page": {
-    "template": "board-page.mustache"
+  "thread-page": {
+    "template": "thread-page.mustache",
+    "styles": ["/styles/thread-page.less"],
+    "scripts": ["/scripts/thread-page.js"],
+    "clientTemplates": [
+      "composerInfo.mustache",
+      "postComposeForm.mustache"
+    ]
   },
   "profile-page": {
     "template": "profile-page.mustache",
@@ -46,9 +52,10 @@
     "styles": ["/styles/home-page.less"],
     "scripts": ["/scripts/home-page.js"],
     "clientTemplates": [
-      "thread.mustache",
+      "threadRow.mustache",
       "threadComposeForm.mustache",
-      "newThreadsBar.mustache"
+      "newThreadsBar.mustache",
+      "composerInfo.mustache"
     ]
   },
   "api-reference-page": {

@@ -29,7 +29,7 @@ app.use(express.static(sourceDir('webapp')));
 app.use((function() {
   var bodyParser = express.bodyParser();
   return function(req, res, next) {
-    if (req.path == '/receiver') {
+    if (req.path == '/callback') {
       req.setEncoding('utf8');
       req.on('readable', function() {
         req.data = JSON.parse(req.read());
@@ -157,7 +157,19 @@ app.get('/', function(req, res) {
 app.get('/thread/:id', function(req, res) {
   res.withUser(function(user, client) {
     client.thread.get(req.params.id, function(err, meta, response) {
-      res.sendNotFound();
+      if (err) {
+        res.sendInternalServerError(err);
+      } else {
+        if (meta.code != statusCodes.OK) {
+          res.flash('error', "Sorry, we couldn't get that thread for you");
+          res.redirect('/');
+        } else {
+          res.renderWithChrome('thread-page', {
+            thread: response.thread,
+            posts: response.posts
+          });
+        }
+      }
     });
   });
 });
@@ -270,7 +282,7 @@ app.post('/signup', function(req, res) {
   } else res.sendBadRequest();
 });
 
-app.post('/listener', function(req, res) {
+app.post('/callback', function(req, res) {
   if (req.data.type && req.data.api_secret == config.frontend_server.api_secret) {
     emitter.emit(req.data.type, req.data);
   }
@@ -336,7 +348,7 @@ authenticateWithRetries(
           protocol: 'http',
           hostname: config.frontend_server.receiver_hostname,
           port: config.frontend_server.receiver_port,
-          pathname: '/listener'
+          pathname: '/callback'
         }), function(err, meta, response) {
       if (err || meta.code != statusCodes.OK) {
         console.error("Couldn't register listener");

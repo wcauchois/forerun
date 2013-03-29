@@ -50,3 +50,52 @@ forerun.views.Drawer = Backbone.View.extend({
   }
 });
 
+forerun.views.MarkdownPreview = Backbone.View.extend({
+  initialize: function(options) {
+    this.converter = new Showdown.converter();
+    this.textarea = options.textarea;
+    this.textarea.keyup(_.bind(this.updatePreview, this));
+  },
+  hide: function() { this.$el.hide(); },
+  show: function() { this.$el.show(); },
+  updatePreview: function() {
+    this.$el.html(this.converter.makeHtml(this.textarea.val()));
+  }
+});
+
+forerun.views.ComposeForm = forerun.views.Drawer.extend({
+  events: {
+    'click .collapse-preview': 'collapsePreview',
+    'click .expand-preview': 'expandPreview'
+  },
+  initialize: function(options) {
+    forerun.views.Drawer.prototype.initialize.apply(this, [options]);
+  },
+  expandPreview: function() {
+    this.markdownPreview.show();
+    this.$collapsePreview.show();
+    this.$expandPreview.hide();
+  },
+  collapsePreview: function() {
+    this.markdownPreview.hide();
+    this.$collapsePreview.hide();
+    this.$expandPreview.show();
+  },
+  getTemplate: function() { /* override */ },
+  render: function() {
+    this.$el.html(this.getTemplate()({
+      composer_info: forerun.templates.composerInfo()
+    }));
+    this.markdownPreview = new forerun.views.MarkdownPreview({
+      el: this.$('#markdown-preview'),
+      textarea: this.$('textarea')
+    });
+    this.markdownPreview.hide();
+    this.$collapsePreview = this.$('.collapse-preview');
+    this.$expandPreview = this.$('.expand-preview');
+    this.$collapsePreview.hide();
+    this.$('textarea').autogrow();
+    return this;
+  }
+});
+

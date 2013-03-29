@@ -1,14 +1,6 @@
 <form action="/thread/new" method="POST">
   <input type="text" name="title" placeholder="Title" class="span6">
   <textarea name="body_markdown" class="span6" rows="2"></textarea>
-  <div>
-    <a href="#" class="expand-preview">
-      <span class="arrow-entity">&#9654;</span> Preview
-    </a>
-    <a href="#" class="collapse-preview">
-      <span class="arrow-entity">&#9660;</span> Preview
-    </a>
-  </div>
-  <div id="markdown-preview"></div>
-  <input type="submit" class="btn btn-primary btn-block" value="Create">
+  {{{composer_info}}}
+  <input type="submit" class="btn btn-success btn-block" value="Create">
 </form>

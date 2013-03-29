@@ -4,6 +4,7 @@ forerun.views.HomePage = forerun.views.Page.extend({
     'click #new-thread-button': 'toggleThreadComposeForm'
   },
   initialize: function(options) {
+    forerun.views.Page.prototype.initialize.apply(this, [options]);
     this.pendingThreads = [];
     /*this.socket = io.connect(options.config.socket_host + '/threads');
     this.socket.emit('scope', { });
@@ -17,7 +18,6 @@ forerun.views.HomePage = forerun.views.Page.extend({
     this.threadComposeForm = new forerun.views.ThreadComposeForm({
       el: this.$('#thread-compose-form')
     });
-    this.$('#thread-compose-form textarea').autogrow();
     return this;
   },
   onNewThread: function(thread) {
@@ -27,7 +27,7 @@ forerun.views.HomePage = forerun.views.Page.extend({
   showPendingThreads: function() {
     this.pendingThreads.forEach(function(thread) {
       var rowDiv = $('<div class="row thread"></div>');
-      rowDiv.html(forerun.templates.thread(thread));
+      rowDiv.html(forerun.templates.threadRow(thread));
       rowDiv.insertAfter(this.$('#new-threads-bar'));
     });
     this.pendingThreads = [];
@@ -69,48 +69,9 @@ forerun.views.NewThreadsBar = Backbone.View.extend({
   }
 });
 
-forerun.views.MarkdownPreview = Backbone.View.extend({
-  initialize: function(options) {
-    this.converter = new Showdown.converter();
-    this.textarea = options.textarea;
-    this.textarea.keyup(_.bind(this.updatePreview, this));
-  },
-  hide: function() { this.$el.hide(); },
-  show: function() { this.$el.show(); },
-  updatePreview: function() {
-    this.$el.html(this.converter.makeHtml(this.textarea.val()));
-  }
-});
-
-forerun.views.ThreadComposeForm = forerun.views.Drawer.extend({
-  events: {
-    'click .collapse-preview': 'collapsePreview',
-    'click .expand-preview': 'expandPreview'
-  },
-  expandPreview: function() {
-    this.markdownPreview.show();
-    this.$collapsePreview.show();
-    this.$expandPreview.hide();
-  },
-  collapsePreview: function() {
-    this.markdownPreview.hide();
-    this.$collapsePreview.hide();
-    this.$expandPreview.show();
-  },
-  initialize: function(options) {
-    forerun.views.Drawer.prototype.initialize.apply(this, [options]);
-  },
-  render: function() {
-    this.$el.html(forerun.templates.threadComposeForm());
-    this.markdownPreview = new forerun.views.MarkdownPreview({
-      el: this.$('#markdown-preview'),
-      textarea: this.$('textarea')
-    });
-    this.markdownPreview.hide();
-    this.$collapsePreview = this.$('.collapse-preview');
-    this.$expandPreview = this.$('.expand-preview');
-    this.$collapsePreview.hide();
-    return this;
+forerun.views.ThreadComposeForm = forerun.views.ComposeForm.extend({
+  getTemplate: function() {
+    return forerun.templates.threadComposeForm;
   }
 });
 
