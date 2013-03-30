@@ -7,7 +7,7 @@ forerun.views.ThreadPage = forerun.views.Page.extend({
     forerun.views.Page.prototype.initialize.apply(this, [options]);
     this.threadId = options.threadId;
     var socket = io.connect(options.config.socket_host + '/posts');
-    socket.emit('scope', { });
+    socket.emit('scope', { thread_id: this.threadId });
     socket.on('new-post', _.bind(this.addNewPost, this));
     this.windowFocused = true;
     this.unreadPosts = 0;
