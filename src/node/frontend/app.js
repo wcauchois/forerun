@@ -302,8 +302,6 @@ app.post('/signup', function(req, res) {
 });
 
 app.post('/callback', function(req, res) {
-  console.log('CALLBACK');
-  console.log(req.data);
   if (req.data.type && req.data.api_secret == config.frontend_server.api_secret) {
     emitter.emit(req.data.type, req.data);
     res.send('');
