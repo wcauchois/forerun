@@ -144,6 +144,9 @@ function saltedHash(salt, hash) {
     .update(hash)
     .digest('hex');
 }
+function extractMentions(doc) {
+  return doc.match(/@\w+/g);
+}
 
 app.use(function(req, res, next) {
   res.sendInternalServerError = function(err) {
@@ -712,6 +715,22 @@ emitter.on('new-post', function(post) {
     type: 'new-post',
     post: renderedPost(post)
   });
+  /*
+  extractMentions(post.body_html).forEach(function(mention) {
+    User.findOne({ handle: mention }, function(err, mentionedUser) {
+      if (!err && mentionedUser) {
+        callListeners({
+          type: 'notification',
+          notification: {
+            type: 'mention',
+            by_user: { id: post.user_id, handle: post.user_handle },
+            target_user: { id: mentionedUser._id, handle: mentionedUser.handle }
+          }
+        });
+      }
+    });
+  });
+  */
 });
 
 mongoose.connect(config.api_server.db_url);
