@@ -29,3 +29,8 @@ exports.readableDate = function(instant) {
   return '' + (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear();
 };
 
+// http://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
+exports.escapeRegex = function(str) {
+  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+}
+

@@ -423,7 +423,8 @@ app.post('/user/new', function(req, res) {
   if (['handle', 'email', 'password_md5'].every(curriedHas(req.body))) {
     res.withConsumer(function(consumer) {
       if (consumer.access_level >= 6) {
-        User.find({ handle: req.body.handle }, function(err, users) {
+        var handleRegex = new RegExp(basics.escapeRegex(req.body.handle), 'i');
+        User.find({ handle: handleRegex }, function(err, users) {
           if (err) {
             res.sendInternalServerError(err);
           } else if (users.length > 0) {
