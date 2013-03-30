@@ -39,6 +39,11 @@ forerun.views.Drawer = Backbone.View.extend({
       this.slideUp();
     } else this.slideDown();
   },
+  showInstant: function() {
+    this.render();
+    this.$el.show();
+    this.open = true;
+  },
   slideDown: function(complete) {
     this.render();
     this.$el.slideDown(complete);
@@ -97,7 +102,7 @@ forerun.views.ComposeForm = forerun.views.Drawer.extend({
   getOptions: function() { return { } },
   render: function() {
     this.$el.html(this.getTemplate()(_.extend({
-      composer_info: forerun.templates.composerInfo()
+      compose_form_aux: forerun.templates.composeFormAux()
     }, this.getOptions())));
     this.markdownPreview = new forerun.views.MarkdownPreview({
       el: this.$('#markdown-preview'),

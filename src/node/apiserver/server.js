@@ -670,7 +670,9 @@ function callListeners(data) {
             options['method'] = 'POST';
             var req = http.request(options, function(res) {
               // TODO we're gonna wanna track failures and back off
+              res.on('readable', function() { res.read(); });
             });
+            req.on('error', function(err) { console.error(err); });
             req.write(JSON.stringify(
               merge(data, { api_secret: consumer.api_secret })));
             req.end();
@@ -685,6 +687,12 @@ emitter.on('new-thread', function(thread) {
   callListeners({
     type: 'new-thread',
     thread: renderedThread(thread)
+  });
+});
+emitter.on('new-post', function(post) {
+  callListeners({
+    type: 'new-post',
+    post: renderedPost(post)
   });
 });
 

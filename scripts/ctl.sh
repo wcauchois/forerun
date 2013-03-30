@@ -15,7 +15,7 @@ fi
 
 case $1 in
   start)
-    mkdir -p log
+    mkdir -p logs
     case $STATUS in
       running)
         echo "Forerun is already running"
@@ -23,14 +23,13 @@ case $1 in
         ;;
       stopped)
         export NODE_ENV=production
-        nohup foreman start >log/out.log 2>log/error.log &
+        nohup foreman start >logs/out.log 2>logs/error.log &
         if [ $? -eq 0 ]; then
           echo $! >$HOME/run/forerun.pid
           echo "Started Forerun"
           exit 0
         else
           echo "Error starting Forerun"
-          cat log/error.log
           exit 1
         fi
         ;;

@@ -10,17 +10,7 @@
 
 {{#posts}}
   <div class="row post-container">
-    <div class="span1"></div>
-    <div class="span10 post">
-      <div class="post-author">
-        <span class="fui-man-16"></span>
-        <a href="/user/{{user_id}}">{{user_handle}}</a>
-      </div>
-      <div class="post-body">
-        {{{body_html}}}
-      </div>
-    </div>
-    <div class="span1"></div>
+    {{> postRow}}
   </div>
 {{/posts}}
 
@@ -38,7 +28,7 @@
   <div class="span1"></div>
 </div>
 
-<div class="row" style="height: 40px;"></div>
+<div class="row" style="height: 100px;"></div>
 
 <script type="text/javascript">
   var currentPage = new forerun.views.ThreadPage({

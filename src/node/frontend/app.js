@@ -18,6 +18,8 @@ var append = basics.append,
     curriedHas = basics.curriedHas;
 
 var app = express();
+var server = http.createServer(app);
+var io = require('socket.io').listen(server);
 var emitter = new events.EventEmitter();
 
 function sourceDir(name) {
@@ -300,8 +302,11 @@ app.post('/signup', function(req, res) {
 });
 
 app.post('/callback', function(req, res) {
+  console.log('CALLBACK');
+  console.log(req.data);
   if (req.data.type && req.data.api_secret == config.frontend_server.api_secret) {
     emitter.emit(req.data.type, req.data);
+    res.send('');
   }
 });
 
@@ -312,26 +317,21 @@ function matchesScope(data, scope) {
   return true;
 }
 
-/*
-function setupSockets(io) {
-  io.on('error', function(err) { console.log("FUCK"); console.log(err); });
-  io.of('/threads').on('error', function(err) { console.log("FUCK"); console.log(err); });
-  io.of('/threads').on('connection', function(socket) {
-    socket.on('error', function(err) { console.error(err); });
-    socket.once('scope', function(scope) {
-      var newThreadListener = function(data) {
-        if (matchesScope(data.thread, scope)) {
-          socket.emit('new-thread', data.thread);
-        }
-      };
-      emitter.on('new-thread', newThreadListener);
-      socket.on('disconnect', function() {
-        emitter.removeListener('new-thread', newThreadListener);
-      });
+io.on('error', function(err) { console.error(err); });
+io.of('/posts').on('connection', function(socket) {
+  socket.on('error', function(err) { console.error(err); });
+  socket.once('scope', function(scope) {
+    var newPostListener = function(data) {
+      if (matchesScope(data.post, scope)) {
+        socket.emit('new-post', data.post);
+      }
+    }
+    emitter.on('new-post', newPostListener);
+    socket.on('disconnect', function() {
+      emitter.removeListener('new-post', newPostListener);
     });
   });
-}
-*/
+});
 
 function authenticateWithRetries(api_key, api_secret, numRetries, callback) {
   if (numRetries == 0) {
@@ -356,7 +356,7 @@ authenticateWithRetries(
     process.exit(1);
   } else {
     app.set('api_token', api_token);
-    app.listen(config.frontend_server.port);
+    server.listen(config.frontend_server.port);
     console.log('Using API token: ' + api_token);
     console.log('Listening on port ' + config.frontend_server.port);
 

@@ -22,20 +22,22 @@
       "/scripts/3rdparty/jquery.timeago.js",
       "/scripts/3rdparty/autogrow.min.js",
       "/scripts/3rdparty/showdown.js",
+      "/socket.io/socket.io.js",
 
       "/scripts/chrome.js"
     ],
     "clientTemplates": ["flashMessage.mustache"],
-    "partials": ["threadRow.mustache"]
+    "partials": ["threadRow.mustache", "postRow.mustache"]
   },
   "thread-page": {
     "template": "thread-page.mustache",
     "styles": ["/styles/thread-page.less"],
     "scripts": ["/scripts/thread-page.js"],
     "clientTemplates": [
-      "composerInfo.mustache",
+      "composeFormAux.mustache",
       "postComposeForm.mustache",
-      "formattingHelp.mustache"
+      "formattingHelp.mustache",
+      "postRow.mustache"
     ]
   },
   "profile-page": {
@@ -56,7 +58,7 @@
       "threadRow.mustache",
       "threadComposeForm.mustache",
       "newThreadsBar.mustache",
-      "composerInfo.mustache",
+      "composeFormAux.mustache",
       "formattingHelp.mustache"
     ]
   },

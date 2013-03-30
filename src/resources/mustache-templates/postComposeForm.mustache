@@ -1,7 +1,13 @@
 <form action="/post/new" method="POST">
-  <textarea name="body_markdown" class="span6" rows="2"></textarea>
+  <textarea name="body_markdown" class="span6" rows="1"></textarea>
   <input type="hidden" name="thread_id" value="{{thread_id}}">
-  {{{composer_info}}}
+  <label class="checkbox checked" for="implicit-submit-checkbox">
+    <span class="icon"></span>
+    <span class="icon-to-fade"></span>
+    <input type="checkbox" checked="checked" value id="implicit-submit-checkbox">
+    Press Enter to reply
+  </label>
+  {{{compose_form_aux}}}
   <input type="submit" class="btn btn-success btn-block" value="Submit">
 </form>
 
