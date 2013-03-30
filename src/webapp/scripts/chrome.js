@@ -127,3 +127,14 @@ forerun.views.ComposeForm = forerun.views.Drawer.extend({
   }
 });
 
+function updateTimestamps() {
+  $('.timeago').each(function(i, span) {
+    var $span = $(span);
+    $span.html($.timeago(new Date($span.data('timestamp'))));
+  });
+}
+$(document).ready(function() {
+  updateTimestamps();
+  setInterval(updateTimestamps, 500);
+});
+

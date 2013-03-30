@@ -9,7 +9,10 @@
 </div>
 <div class="span1">{{reply_count}}</div>
 <div class="span3">
-  {{! TODO }}
+  {{#last_post}}
+    {{author}}<br>
+    <span class="last-post-date timeago" data-timestamp="{{date}}"></span>
+  {{/last_post}}
 </div>
 <div class="span1"></div>
 

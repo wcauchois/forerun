@@ -521,7 +521,14 @@ app.get('/threads', function(req, res) {
           res.sendInternalServerError(err);
         } else {
           threads.sort(function(x, y) {
-            return y._id.getTimestamp() - x._id.getTimestamp();
+            var y_ts, x_ts;
+            if (y.last_post_date) {
+              y_ts = y.last_post_date.getTime();
+            } else y_ts = y._id.getTimestamp();
+            if (x.last_post_date) {
+              x_ts = x.last_post_date.getTime();
+            } else x_ts = x._id.getTimestamp();
+            return (y_ts - x_ts);
           });
           res.send({
             meta: { code: statusCodes.OK },
