@@ -9,6 +9,17 @@ forerun.views.ThreadPage = forerun.views.Page.extend({
     var socket = io.connect(options.config.socket_host + '/posts');
     socket.emit('scope', { });
     socket.on('new-post', _.bind(this.addNewPost, this));
+    this.windowFocused = true;
+    this.unreadPosts = 0;
+    this.originalTitle = document.title;
+    $(window).focus(_.bind(function() {
+      this.windowFocused = true;
+      document.title = this.originalTitle;
+      this.unreadPosts = 0;
+    }, this));
+    $(window).blur(_.bind(function() {
+      this.windowFocused = false;
+    }, this));
   },
   addNewPost: function(post) {
     var postContainer = $('<div class="row post-container">');
@@ -16,6 +27,10 @@ forerun.views.ThreadPage = forerun.views.Page.extend({
     postContainer.insertAfter('.post-container:last');
     if ($('#post-compose-form textarea').is(':focus')) {
       $('html, body').scrollTop($(document).height());
+    }
+    if (!this.windowFocused) {
+      this.unreadPosts += 1;
+      document.title = '(' + this.unreadPosts + ') ' + this.originalTitle;
     }
   },
   togglePostComposeForm: function() {
