@@ -25,7 +25,8 @@ var emitter = new events.EventEmitter();
 var userSchema = Schema({
   handle: String,
   email: String,
-  password_md5: String,
+  salted_password_md5: String,
+  salt: String,
   join_date: { type: Date, default: Date.now },
   consumer_id: ObjectId
 });
@@ -35,9 +36,6 @@ userSchema.path('handle').validate(function(val) {
 userSchema.path('email').validate(function(val) {
   return /^\w(\w|\+|\.)*@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/.test(val);
 }, 'Invalid email address');
-userSchema.path('password_md5').validate(function(val) {
-  return /^[a-f0-9]{32}$/.test(val);
-}, 'Invalid password MD5');
 
 var threadSchema = Schema({
   title: String,
@@ -132,11 +130,19 @@ function renderedUser(user, consumerOpt) {
     json['consumer'] = renderedConsumer(consumerOpt);
   return json;
 }
+// Used to generate API keys and secrets
 function generateTimedHash(val) {
-  return crypto.createHmac('sha1', config.api_server.salt)
-    .update(val)
+  return crypto.createHash('md5')
+    .update(config.api_server.salt)
     .update(Date.now().toString())
-    .digest('base64');
+    .update(val)
+    .digest('hex');
+}
+function saltedHash(salt, hash) {
+  return crypto.createHash('md5')
+    .update(salt)
+    .update(hash)
+    .digest('hex');
 }
 
 app.use(function(req, res, next) {
@@ -348,7 +354,8 @@ app.post('/user/login', function(req, res) {
           if (err) {
             res.sendInternalServerError(err);
           } else if (user) {
-            if (user.password_md5 == req.body.password_md5) {
+            var salted_password_md5 = saltedHash(user.salt, req.body.password_md5);
+            if (user.salted_password_md5 == salted_password_md5) {
               Consumer.findOne({ _id: user.consumer_id }, function(err, consumer) {
                 if (err) {
                   res.sendInternalServerError(err);
@@ -429,9 +436,11 @@ app.post('/user/new', function(req, res) {
               response: { }
             });
           } else {
+            var salt = crypto.randomBytes(16).toString('hex');
+            var salted_password_md5 = saltedHash(salt, req.body.password_md5);
             var newUserConsumer = new Consumer({
               api_key: generateTimedHash(req.body.handle),
-              api_secret: generateTimedHash(req.body.password_md5),
+              api_secret: generateTimedHash(salted_password_md5),
               access_level:
                 Math.min(consumer.access_level, req.body.access_level || 0)
             });
@@ -442,7 +451,8 @@ app.post('/user/new', function(req, res) {
                 var newUser = new User({
                   handle: req.body.handle,
                   email: req.body.email,
-                  password_md5: req.body.password_md5,
+                  salted_password_md5: salted_password_md5,
+                  salt: salt,
                   consumer_id: userConsumer._id
                 });
                 newUser.save(function(err, user) {

@@ -122,14 +122,20 @@ app.use(function(req, res, next) {
     req.cookies['flash.type'] = type;
     req.cookies['flash.message'] = message;
   };
+  res.loginRedirect = function() {
+    req.session = null;
+    res.clearCookie('api_token');
+    res.flash('error', 'Please login to view that page');
+    res.redirect('/#login');
+  };
   res.withUser = function(loggedInCallback, loggedOutCallback) {
     if (req.session['api_token']) {
       loggedInCallback(req.session['user'], api.Client(req.session['api_token']));
     } else if (loggedOutCallback) {
       req.session = null;
       loggedOutCallback();
-    } else res.redirect('/');
-  }
+    } else res.loginRedirect();
+  };
   next();
 });
 
@@ -146,9 +152,13 @@ app.get('/', function(req, res) {
       if (err) {
         res.sendInternalServerError(err);
       } else {
-        if (meta.code != statusCodes.OK)
-          res.flash('error', "Sorry, we couldn't get the threads list for you");
-        res.renderWithChrome('home-page', { threads: response.threads || [] });
+        if (meta.errorType == 'invalid_token') {
+          res.loginRedirect();
+        } else {
+          if (meta.code != statusCodes.OK)
+            res.flash('error', "Sorry, we couldn't get the threads list for you");
+          res.renderWithChrome('home-page', { threads: response.threads || [] });
+        }
       }
     });
   }, function() {
@@ -162,7 +172,9 @@ app.get('/thread/:id', function(req, res) {
       if (err) {
         res.sendInternalServerError(err);
       } else {
-        if (meta.code != statusCodes.OK) {
+        if (meta.errorType == 'invalid_token') {
+          res.loginRedirect();
+        } else if (meta.code != statusCodes.OK) {
           res.flash('error', "Sorry, we couldn't get that thread for you");
           res.redirect('/');
         } else {
@@ -240,7 +252,7 @@ app.get('/logout', function(req, res) {
 
 app.post('/login', function(req, res) {
   if (['handle', 'password'].every(curriedHas(req.body))) {
-    var password_md5 = basics.createMD5Hash(req.body.password);
+    var password_md5 = basics.simpleMD5(req.body.password);
     var client = api.Client(app.get('api_token'));
     client.user.login(req.body.handle, password_md5,
         function(err, meta, response) {
@@ -271,7 +283,7 @@ app.post('/login', function(req, res) {
 
 app.post('/signup', function(req, res) {
   if (['handle', 'email', 'password'].every(curriedHas(req.body))) {
-    var password_md5 = basics.createMD5Hash(req.body.password);
+    var password_md5 = basics.simpleMD5(req.body.password);
     var client = api.Client(app.get('api_token'));
     client.user.new_(
         req.body.handle, req.body.email, password_md5, 0,

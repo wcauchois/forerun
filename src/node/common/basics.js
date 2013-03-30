@@ -20,7 +20,7 @@ exports.curriedHas = function(obj) {
   }
 };
 
-exports.createMD5Hash = function(val) {
+exports.simpleMD5 = function(val) {
   return crypto.createHash('md5').update(val).digest('hex');
 };
 

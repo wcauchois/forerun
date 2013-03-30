@@ -4,6 +4,26 @@
     <h1>Forerun</h1>
   </div>
 </div>
+<!-- TEMP apology message -->
+<div class="row" style="margin-bottom: 10px;">
+  <div class="span2"></div>
+  <div class="span8">
+    Dear user,<br>
+    <strong>I have cleared database. You will have to recreate your account.</strong>
+    <br>
+    I did this because there was a security flaw related to passwords. The passwords
+    were MD5 hashed (of course), but without a salt. This meant that someone could
+    hack into my database and fairly easily get your password -- which, I was worried,
+    might be the same password that you use for your email (also stored in the DB).
+    Of course, you're smarter than that. But just to be safe...
+    <br>
+    <em>Passwords are now salted with 16-bytes of
+    <a href="http://nodejs.org/api/crypto.html#crypto_crypto_randombytes_size_callback">cryptographically strong random data</a>.</em>
+    <br>
+    <span style="float: right;">&dash; Bill</span>
+  </div>
+  <div class="span2"></div>
+</div>
 <div class="row">
   <div class="span4"></div>
   <div class="span2">
