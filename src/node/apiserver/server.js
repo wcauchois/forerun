@@ -18,6 +18,11 @@ var curriedHas = basics.curriedHas,
 
 var app = express();
 app.use(express.bodyParser());
+app.use(function(req, res, next) {
+  // http://www.w3.org/TR/access-control/
+  res.set('Access-Control-Allow-Origin', '*');
+  next();
+});
 
 // Used for all app events -- such as adding a user, post, or thread.
 var emitter = new events.EventEmitter();
@@ -28,6 +33,7 @@ var userSchema = Schema({
   salted_password_md5: String,
   salt: String,
   join_date: { type: Date, default: Date.now },
+  avatar_small: { type: String, required: false },
   consumer_id: ObjectId
 });
 userSchema.path('handle').validate(function(val) {
@@ -106,7 +112,7 @@ function renderedThread(thread) {
       author: thread.last_post_author,
       date: thread.last_post_date.getTime()
     };
-  }
+  } else json.last_post = null;
   return json;
 }
 function renderedConsumer(consumer) {
@@ -115,8 +121,6 @@ function renderedConsumer(consumer) {
     api_secret: consumer.api_secret,
     access_level: consumer.access_level,
   };
-  if (consumer.user_id)
-    json['user_id'] = consumer.user_id.toString();
   return json;
 }
 function renderedUser(user, consumerOpt) {
@@ -124,10 +128,10 @@ function renderedUser(user, consumerOpt) {
     _id: user._id.toString(),
     handle: user.handle,
     email: user.email,
-    join_date: user.join_date.getTime()
+    join_date: user.join_date.getTime(),
+    avatar_small: user.avatar_small,
+    consumer: consumerOpt && renderedConsumer(consumerOpt)
   };
-  if (consumerOpt)
-    json['consumer'] = renderedConsumer(consumerOpt);
   return json;
 }
 // Used to generate API keys and secrets
@@ -150,7 +154,7 @@ function extractMentions(doc) {
 
 app.use(function(req, res, next) {
   res.sendInternalServerError = function(err) {
-    res.send({
+    res.send(statusCodes.INTERNAL_SERVER_ERROR, {
       meta: {
         code: statusCodes.INTERNAL_SERVER_ERROR,
         errorType: 'server_error',
@@ -159,8 +163,18 @@ app.use(function(req, res, next) {
       response: { }
     });
   };
+  res.sendBadRequest = function(typeOpt, detailOpt) {
+    res.send(statusCodes.BAD_REQUEST, {
+      meta: {
+        code: statusCodes.BAD_REQUEST,
+        errorType: 'bad_request',
+        errorDetail: 'Bad request'
+      },
+      response: { }
+    });
+  };
   res.sendNotFound = function() {
-    res.send({
+    res.send(statusCodes.NOT_FOUND, {
       meta: {
         code: statusCodes.NOT_FOUND,
         errorType: 'not_found',
@@ -168,9 +182,9 @@ app.use(function(req, res, next) {
       },
       response: { }
     });
-  }
+  };
   res.sendInsufficientParameters = function() {
-    res.send({
+    res.send(statusCodes.BAD_REQUEST, {
       meta: {
         code: statusCodes.BAD_REQUEST,
         errorType: 'insufficient_params',
@@ -180,7 +194,7 @@ app.use(function(req, res, next) {
     });
   };
   res.sendNotAuthorized = function(typeOpt, detailOpt) {
-    res.send({
+    res.send(statusCodes.NOT_AUTHORIZED, {
       meta: {
         code: statusCodes.NOT_AUTHORIZED,
         errorType: typeOpt || 'not_authorized',
@@ -190,7 +204,7 @@ app.use(function(req, res, next) {
     });
   };
   res.sendValidationError = function(err) {
-    res.send({
+    res.send(statusCodes.BAD_REQUEST, {
       meta: {
         code: statusCodes.BAD_REQUEST,
         errorType: 'param_error',
@@ -310,14 +324,7 @@ app.post('/authenticate', function(req, res) {
           }
         });
       } else {
-        res.send({
-          meta: {
-            code: statusCodes.NOT_AUTHORIZED,
-            errorType: 'authentication_failed',
-            errorDetail: 'Failed to authenticate'
-          },
-          response: { }
-        });
+        res.sendNotAuthorized('authentication_failed', 'Failed to authenticate');
       }
     });
   } else res.sendInsufficientParameters();
@@ -372,7 +379,8 @@ app.post('/user/login', function(req, res) {
                 }
               });
             } else {
-              res.send({
+              // XXX factor out sendBadRequest?
+              res.send(statusCodes.BAD_REQUEST, {
                 meta: {
                   code: statusCodes.BAD_REQUEST,
                   errorType: 'login_failed',
@@ -382,7 +390,7 @@ app.post('/user/login', function(req, res) {
               });
             }
           } else {
-            res.send({
+            res.send(statusCodes.BAD_REQUEST, {
               meta: {
                 code: statusCodes.BAD_REQUEST,
                 errorType: 'login_failed',
@@ -431,7 +439,7 @@ app.post('/user/new', function(req, res) {
           if (err) {
             res.sendInternalServerError(err);
           } else if (users.length > 0) {
-            res.send({
+            res.send(statusCodes.BAD_REQUEST, {
               meta: {
                 code: statusCodes.BAD_REQUEST,
                 errorType: 'handle_taken',
@@ -477,6 +485,88 @@ app.post('/user/new', function(req, res) {
       } else res.sendNotAuthorized();
     });
   } else res.sendInsufficientParameters();
+});
+
+app.get('/user/find', function(req, res) {
+  if (['handle'].every(curriedHas(req.query))) {
+    res.withConsumer(function(consumer) {
+      if (consumer.access_level >= 0) {
+        User.findOne({ handle: req.query.handle }, function(err, targetUser) {
+          if (err) {
+            res.sendInternalServerError(err);
+          } else if (targetUser) {
+            Consumer.findOne({ _id: targetUser.consumer_id },
+                function(err, targetConsumer) {
+              if (err) {
+                res.sendInternalServerError(err);
+              } else if (targetConsumer) {
+                res.send({
+                  meta: { code: statusCodes.OK },
+                  response: {
+                    user: renderedUser(targetUser),
+                    access_level: targetConsumer.access_level
+                  }
+                });
+              } else {
+                res.sendInternalServerError(
+                  new Error("Couldn't find consumer for user"));
+              }
+            });
+          } else res.sendNotFound();
+        });
+      } else res.sendNotAuthorized();
+    });
+  } else res.sendInsufficientParameters();
+});
+
+app.post('/user/update', function(req, res) {
+  res.withConsumerAndUser(function(consumer, user) {
+    var targetUserId = req.body.user_id || user._id;
+    var isSelf = targetUserId == user._id;
+    User.find({ _id: targetUserId }, function(err, targetUser) {
+      if (err) {
+        res.sendInternalServerError(err);
+      } else if (targetUser) {
+        var allowed = true;
+        var newAccessLevel = null;
+        if (req.body.hasOwnProperty('access_level')) {
+          if (consumer.access_level >= 3 &&
+              req.body.access_level <= consumer.access_level) {
+            newAccessLevel = parseInt(req.body.access_level);
+          } else allowed = false;
+        }
+        if (req.body.hasOwnProperty('avatar_small')) {
+          if (consumer.access_level >= 3 || isSelf) {
+            targetUser.avatar_small = req.body.avatar_small;
+          } else allowed = false;
+        }
+        if (allowed) {
+          function saveUser() {
+            targetUser.save(function(err, user) {
+              if (err) {
+                res.sendInternalServerError(err);
+              } else {
+                res.send({
+                  meta: { code: statusCodes.OK },
+                  response: { user: renderedUser(user) }
+                });
+              }
+            });
+          }
+          if (newAccessLevel) {
+            Consumer.update({ _id: targetUser.consumer_id },
+                { $set: { access_level: newAccessLevel } }, function(err) {
+              if (err) {
+                res.sendInternalServerError(err);
+              } else saveUser();
+            });
+          } else saveUser();
+        } else {
+          res.sendNotAuthorized(null, 'You are not allowed to make those changes');
+        }
+      } else res.sendNotFound();
+    });
+  });
 });
 
 app.post('/thread/new', function(req, res) {

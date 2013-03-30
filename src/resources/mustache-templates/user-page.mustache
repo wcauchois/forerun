@@ -1,0 +1,83 @@
+<div class="row field" id="user-id">
+  <div class="span3"></div>
+  <div class="span2 field-name">User ID</div>
+  <div class="span3 field-value"><tt>{{user._id}}</tt></div>
+  <div class="span4"></div>
+</div>
+
+<div class="row field" id="handle">
+  <div class="span3"></div>
+  <div class="span2 field-name">Handle</div>
+  <div class="span3 field-value">{{user.handle}}</div>
+  <div class="span4"></div>
+</div>
+
+{{#show_email}}
+  <div class="row field" id="email">
+    <div class="span3"></div>
+    <div class="span2 field-name">Email</div>
+    <div class="span3 field-value">{{user.email}}</div>
+    <div class="span4"></div>
+  </div>
+{{/show_email}}
+
+<div class="row field" id="join-date">
+  <div class="span3"></div>
+  <div class="span2 field-name">Join Date</div>
+  <div class="span3 field-value">{{readable_join_date}}</div>
+  <div class="span4"></div>
+</div>
+
+{{#user.consumer}}
+  <div class="row field" id="api-key">
+    <div class="span3"></div>
+    <div class="span2 field-name">API Key</div>
+    <div class="span3 field-value"><tt>{{api_key}}</tt></div>
+    <div class="span4"></div>
+  </div>
+  <div class="row field" id="api-secret">
+    <div class="span3"></div>
+    <div class="span2 field-name">API Secret</div>
+    <div class="span3 field-value"><tt>{{api_secret}}</tt></div>
+    <div class="span4"></div>
+  </div>
+{{/user.consumer}}
+
+<div class="row field" id="access-level">
+  <div class="span3"></div>
+  <div class="span2 field-name">
+    {{#can_edit_access_level}}
+      <a href="#" class="edit" title="Edit">Access Level</a>
+    {{/can_edit_access_level}}
+
+    {{^can_edit_access_level}}
+      Access Level
+    {{/can_edit_access_level}}
+  </div>
+  <div class="span3 field-value">{{access_level}}</div>
+  <div class="span4"></div>
+</div>
+
+<div class="row field" id="avatar">
+  <div class="span3"></div>
+  <div class="span2 field-name">
+    {{#can_edit_avatar}}
+      <a href="#" class="edit" title="Edit">Avatar</a>
+    {{/can_edit_avatar}}
+
+    {{^can_edit_avatar}}
+      Avatar
+    {{/can_edit_avatar}}
+  </div>
+  <div class="span3 field-value">
+    {{#avatar}}
+      <img src="{{small}}" width="16" height="16">
+    {{/avatar}}
+
+    {{^avatar}}
+      <span class="fui-man-16"></span>
+    {{/avatar}}
+  </div>
+  <div class="span4"></div>
+</div>
+

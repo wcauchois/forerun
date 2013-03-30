@@ -15,6 +15,7 @@
     "api_port": 4000
   },
   "client": {
-    "socket_host": "http://localhost:3000"
+    "socket_host": "http://localhost:8080",
+    "api_host": "http://api.localhost:8080"
   }
 }

@@ -229,6 +229,42 @@ app.post('/post/new', function(req, res) {
   } else res.sendBadRequest();
 });
 
+(function(callback) {
+  app.get('/profile', function(req, res) {
+    callback(null, req, res);
+  });
+  app.get('/user/:handle', function(req, res) {
+    callback(req.params.handle, req, res);
+  });
+})(function(handleOpt, req, res) {
+  function render(currentUser, user, userAccessLevel) {
+    var isSelf = currentUser._id == user._id;
+    res.renderWithChrome('user-page', {
+      user: user,
+      readable_join_date: basics.readableDate(user.join_date),
+      access_level: userAccessLevel,
+      show_email: isSelf,
+      can_edit_access_level: currentUser.consumer.access_level >= 3,
+      can_edit_avatar: isSelf,
+      avatar: user.avatar_small && { small: user.avatar_small }
+    });
+  }
+  res.withUser(function(currentUser, client) {
+    if (handleOpt) {
+      client.user.find(handleOpt, function(err, meta, response) {
+        if (err) {
+          res.sendInternalServerError();
+        } else if (meta.code != statusCodes.OK) {
+          if (meta.code == statusCodes.NOT_FOUND) {
+            res.flash('error', "That user doesn't seem to exist");
+          } else res.flash('error', "Sorry, we couldn't get that user for you");
+          res.redirect('/');
+        } else render(currentUser, response.user, response.access_level);
+      });
+    } else render(currentUser, currentUser, currentUser.consumer.access_level);
+  });
+});
+/*
 app.get('/profile', function(req, res) {
   res.withUser(function(user, client) {
     res.renderWithChrome('profile-page', {
@@ -237,6 +273,9 @@ app.get('/profile', function(req, res) {
     });
   });
 });
+app.get('/user/:handle', function(req, res) {
+});
+*/
 
 app.get('/logout', function(req, res) {
   res.withUser(function(user, client) {

@@ -64,6 +64,11 @@ function userEndpoints(service) {
         handle: handle,
         password_md5: passwordMD5
       }, callback);
+    },
+    find: function(handle, callback) {
+      service('GET', '/user/find', {
+        handle: handle
+      }, callback);
     }
   };
 }

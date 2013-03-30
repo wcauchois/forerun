@@ -40,9 +40,9 @@
       "postRow.mustache"
     ]
   },
-  "profile-page": {
-    "template": "profile-page.mustache",
-    "styles": ["/styles/profile-page.less"]
+  "user-page": {
+    "template": "user-page.mustache",
+    "styles": ["/styles/user-page.less"]
   },
   "splash-page": {
     "template": "splash-page.mustache",
