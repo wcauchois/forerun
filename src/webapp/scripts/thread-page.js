@@ -14,6 +14,9 @@ forerun.views.ThreadPage = forerun.views.Page.extend({
     var postContainer = $('<div class="row post-container">');
     postContainer.html(forerun.templates.postRow(post));
     postContainer.insertAfter('.post-container:last');
+    if ($('#post-compose-form textarea').is(':focus')) {
+      $('html, body').scrollTop($(document).height());
+    }
   },
   togglePostComposeForm: function() {
     this.postComposeForm.toggle();
@@ -73,7 +76,6 @@ forerun.views.PostComposeForm = forerun.views.ComposeForm.extend({
       });
       this.$textarea.val('');
       this.$textarea.height(this.originalTextareaHeight);
-      $('html, body').scrollTop($(document).height());
       return false;
     }, this));
   },
