@@ -63,6 +63,7 @@ forerun.views.MarkdownPreview = Backbone.View.extend({
   },
   hide: function() { this.$el.hide(); },
   show: function() { this.$el.show(); },
+  clear: function() { this.$el.html(''); },
   updatePreview: function() {
     this.$el.html(this.converter.makeHtml(this.textarea.val()));
   }
@@ -97,6 +98,9 @@ forerun.views.ComposeForm = forerun.views.Drawer.extend({
     this.markdownPreview.hide();
     this.$collapsePreview.hide();
     this.$expandPreview.show();
+  },
+  clearPreview: function() {
+    this.markdownPreview.clear();
   },
   getTemplate: function() { /* override */ },
   getOptions: function() { return { } },

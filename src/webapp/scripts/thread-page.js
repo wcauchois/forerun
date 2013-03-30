@@ -32,7 +32,7 @@ forerun.views.ThreadPage = forerun.views.Page.extend({
 });
 
 forerun.views.PostComposeForm = forerun.views.ComposeForm.extend({
-  events: {
+  subEvents: {
     'click #implicit-submit-checkbox': 'updateSubmit',
     'keyup textarea': 'onTextareaKeyup',
     'keydown textarea': 'onTextareaKeydown'
@@ -61,6 +61,7 @@ forerun.views.PostComposeForm = forerun.views.ComposeForm.extend({
     forerun.views.ComposeForm.prototype.initialize.apply(this, [options]);
     this.threadId = options.threadId;
     this.shiftPressed = false;
+    this.events = _.extend({ }, this.events, this.subEvents);
   },
   render: function() {
     forerun.views.ComposeForm.prototype.render.apply(this);
@@ -76,6 +77,7 @@ forerun.views.PostComposeForm = forerun.views.ComposeForm.extend({
       });
       this.$textarea.val('');
       this.$textarea.height(this.originalTextareaHeight);
+      this.clearPreview();
       return false;
     }, this));
   },
