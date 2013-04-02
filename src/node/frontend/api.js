@@ -26,22 +26,18 @@ function rawService(method, path, params, callback) {
     options.headers['Content-Length'] = data.length;
   }
   var req = http.request(options, function(res) {
-    if (res.statusCode == statusCodes.OK) {
-      res.setEncoding('utf8');
-      res.on('error', function(err) { callback(err); });
-      res.on('readable', function() {
-        var raw = res.read();
-        var json = null;
-        try {
-          json = JSON.parse(raw);
-        } catch(ex) { }
-        if (json != null) {
-          callback(null, json.meta, json.response);
-        } else callback(new Error("Malformed response"));
-      });
-    } else {
-      callback(new Error("API server returned a " + res.statusCode));
-    }
+    res.setEncoding('utf8');
+    res.on('error', function(err) { callback(err); });
+    res.on('readable', function() {
+      var raw = res.read();
+      var json = null;
+      try {
+        json = JSON.parse(raw);
+      } catch(ex) { }
+      if (json != null) {
+        callback(null, json.meta, json.response);
+      } else callback(new Error("Malformed response"));
+    });
   });
   req.on('error', function(err) { callback(err); });
   if (data) req.write(data);
