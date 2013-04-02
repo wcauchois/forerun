@@ -2,17 +2,11 @@
 # NOTE this script should be used for PRODUCTION only
 # for development, just run `foreman start` yourself
 
-PIDFILE=$HOME/run/forerun.pid
 LOGDIR=$HOME/log
 mkdir -p $LOGDIR
 
-if [ -f $PIDFILE ]; then
-  if pgrep -F $PIDFILE >/dev/null; then
-    STATUS="running"
-  else
-    rm $PIDFILE
-    STATUS="stopped"
-  fi
+if pgrep foreman >/dev/null; then
+  STATUS="running"
 else
   STATUS="stopped"
 fi
@@ -28,7 +22,6 @@ case $1 in
         export NODE_ENV=production
         nohup foreman start >>$LOGDIR/out.log 2>>$LOGDIR/err.log &
         if [ $? -eq 0 ]; then
-          pidof foreman >$PIDFILE
           echo "Started Forerun"
           exit 0
         else
@@ -41,10 +34,9 @@ case $1 in
   stop)
     case $STATUS in
       running)
-        PID=`cat $PIDFILE`
+        PID=`pidof foreman`
         if kill $PID; then
           while [ -e /proc/$PID ]; do sleep 0.1; done
-          rm $PIDFILE
           echo "Stopped Forerun"
           exit 0
         else
