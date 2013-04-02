@@ -48,8 +48,8 @@ var threadSchema = Schema({
   user_handle: String,
   user_id: ObjectId,
   reply_count: { type: Number, default: 0 },
-  last_post_author: { type: String, required: false },
-  last_post_date: { type: Date, required: false }
+  last_post_author: String,
+  last_post_date: Date
 });
 threadSchema.path('title').validate(function(val) {
   return val.length > 0;
@@ -576,13 +576,12 @@ app.post('/thread/new', function(req, res) {
         var threadDoc = {
           title: req.body.title,
           user_handle: user.handle,
-          user_id: user._id
+          user_id: user._id,
+          last_post_author: user.handle,
+          last_post_date: Date.now(),
+          reply_count: 0
         }
-        if (req.body.body_markdown) {
-          threadDoc.last_post_author = user.handle;
-          threadDoc.last_post_date = Date.now();
-          threadDoc.reply_count = 1;
-        }
+        if (req.body.body_markdown) threadDoc.reply_count = 1;
         var newThread = new Thread(threadDoc);
         newThread.save(function(err, thread) {
           if (err) {
@@ -620,20 +619,10 @@ app.post('/thread/new', function(req, res) {
 app.get('/threads', function(req, res) {
   res.withConsumer(function(consumer) {
     if (consumer.access_level >= 0) {
-      Thread.find({ }, function(err, threads) {
+      Thread.find({ }).sort({ last_post_date: -1 }).exec(function(err, threads) {
         if (err) {
           res.sendInternalServerError(err);
         } else {
-          threads.sort(function(x, y) {
-            var y_ts, x_ts;
-            if (y.last_post_date) {
-              y_ts = y.last_post_date.getTime();
-            } else y_ts = y._id.getTimestamp();
-            if (x.last_post_date) {
-              x_ts = x.last_post_date.getTime();
-            } else x_ts = x._id.getTimestamp();
-            return (y_ts - x_ts);
-          });
           res.send({
             meta: { code: statusCodes.OK },
             response: { threads: threads.map(renderedThread) }
