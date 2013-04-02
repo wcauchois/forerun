@@ -651,7 +651,8 @@ app.get('/thread/:id', function(req, res) {
         if (err) {
           res.sendInternalServerError(err);
         } else if (thread) {
-          Post.find({ thread_id: thread._id }, function(err, posts) {
+          Post.find({ thread_id: thread._id }).sort({ _id: 1 }).exec(
+              function(err, posts) {
             if (err) {
               res.sendInternalServerError(err);
             } else {
