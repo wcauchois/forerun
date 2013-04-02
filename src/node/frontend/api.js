@@ -40,7 +40,6 @@ function rawService(method, path, params, callback) {
         } else callback(new Error("Malformed response"));
       });
     } else {
-      console.error(meta);
       callback(new Error("API server returned a " + res.statusCode));
     }
   });
