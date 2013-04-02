@@ -573,16 +573,14 @@ app.post('/thread/new', function(req, res) {
   if (['title'].every(curriedHas(req.body))) {
     res.withConsumerAndUser(function(consumer, user) {
       if (consumer.access_level >= 0) {
-        var threadDoc = {
+        var newThread = new Thread({
           title: req.body.title,
           user_handle: user.handle,
           user_id: user._id,
           last_post_author: user.handle,
           last_post_date: Date.now(),
-          reply_count: 0
-        }
-        if (req.body.body_markdown) threadDoc.reply_count = 1;
-        var newThread = new Thread(threadDoc);
+          reply_count: req.body.body_markdown ? 1 : 0
+        });
         newThread.save(function(err, thread) {
           if (err) {
             res.maybeSendValidationError(err);

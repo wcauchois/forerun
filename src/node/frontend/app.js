@@ -11,7 +11,8 @@ var express = require('express'),
     url = require('url'),
     events = require('events'),
     md = require('node-markdown').Markdown,
-    domain = require('domain');
+    domain = require('domain'),
+    logging = require('../common/logging.js');
 
 var append = basics.append,
     merge = basics.merge,
@@ -25,6 +26,9 @@ var emitter = new events.EventEmitter();
 function sourceDir(name) {
   return path.join(__dirname, '../..', name);
 }
+
+app.use(logging.extendRequest());
+logging.set('server', 'frontend');
 
 app.set('views', sourceDir('resources/mustache-templates'));
 app.use(express.static(sourceDir('webapp')));
@@ -396,30 +400,32 @@ function authenticateWithRetries(api_key, api_secret, numRetries, callback) {
   }
 }
 
-authenticateWithRetries(
-    config.frontend_server.api_key,
-    config.frontend_server.api_secret,
-    5, function(err, api_token) {
-  if (err) {
-    console.error("Couldn't authenticate frontend server with API");
-    process.exit(1);
-  } else {
-    app.set('api_token', api_token);
-    server.listen(config.frontend_server.port);
-    console.log('Using API token: ' + api_token);
-    console.log('Listening on port ' + config.frontend_server.port);
+logging.init(function() {
+  authenticateWithRetries(
+      config.frontend_server.api_key,
+      config.frontend_server.api_secret,
+      5, function(err, api_token) {
+    if (err) {
+      console.error("Couldn't authenticate frontend server with API");
+      process.exit(1);
+    } else {
+      app.set('api_token', api_token);
+      server.listen(config.frontend_server.port);
+      console.log('Using API token: ' + api_token);
+      console.log('Listening on port ' + config.frontend_server.port);
 
-    api.Client(api_token).listener.register(
-        url.format({
-          protocol: 'http',
-          hostname: config.frontend_server.receiver_hostname,
-          port: config.frontend_server.receiver_port,
-          pathname: '/callback'
-        }), function(err, meta, response) {
-      if (err || meta.code != statusCodes.OK) {
-        console.error("Couldn't register listener");
-      }
-    });
-  }
+      api.Client(api_token).listener.register(
+          url.format({
+            protocol: 'http',
+            hostname: config.frontend_server.receiver_hostname,
+            port: config.frontend_server.receiver_port,
+            pathname: '/callback'
+          }), function(err, meta, response) {
+        if (err || meta.code != statusCodes.OK) {
+          console.error("Couldn't register listener");
+        }
+      });
+    }
+  });
 });
 

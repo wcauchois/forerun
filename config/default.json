@@ -1,4 +1,7 @@
 {
+  "logging": {
+    "db_url": "mongodb://localhost/forerun_logs"
+  },
   "api_server": {
     "port": 4000,
     "salt": "billybob",
@@ -15,7 +18,7 @@
     "api_port": 4000
   },
   "client": {
-    "socket_host": "http://localhost:8080",
-    "api_host": "http://api.localhost:8080"
+    "socket_host": "http://localhost:3000",
+    "api_host": "http://api.localhost:4000"
   }
 }
