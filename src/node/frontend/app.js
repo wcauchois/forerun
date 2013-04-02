@@ -364,10 +364,9 @@ app.post('/callback', function(req, res) {
 });
 
 function matchesScope(data, scope) {
-  for (var key in Object.keys(scope)) {
-    if (scope[key] != data[key]) return false;
-  }
-  return true;
+  return Object.keys(scope).every(function(key) {
+    return scope[key] == data[key];
+  });
 }
 
 io.on('error', function(err) { console.error(err); });
