@@ -28,7 +28,7 @@ case $1 in
         export NODE_ENV=production
         nohup foreman start >>$LOGDIR/out.log 2>>$LOGDIR/err.log &
         if [ $? -eq 0 ]; then
-          echo $! >$PIDFILE
+          pidof foreman >$PIDFILE
           echo "Started Forerun"
           exit 0
         else
