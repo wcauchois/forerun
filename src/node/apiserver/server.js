@@ -52,8 +52,8 @@ var threadSchema = Schema({
   last_post_date: Date
 });
 threadSchema.path('title').validate(function(val) {
-  return val.length > 0;
-}, 'Must provide a thread title');
+  return val.length > 0 && val.length <= 100;
+}, 'Invalid thread title -- length must be in (0,100]');
 
 var postSchema = Schema({
   body_html: String,
