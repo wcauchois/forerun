@@ -24,7 +24,9 @@ forerun.views.ThreadPage = forerun.views.Page.extend({
   addNewPost: function(post) {
     var postContainer = $('<div class="row post-container">');
     postContainer.html(forerun.templates.postRow(post));
-    postContainer.insertAfter('.post-container:last');
+    var $lastPost = $('.post-container:last');
+    var $afterElem = ($lastPost.length > 0) ? $lastPost : $('.title-container');
+    postContainer.insertAfter($afterElem);
     if ($('#post-compose-form textarea').is(':focus')) {
       $('html, body').scrollTop($(document).height());
     }
