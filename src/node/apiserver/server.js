@@ -9,7 +9,8 @@ var express = require('express'),
     events = require('events'),
     url = require('url'),
     http = require('http'),
-    md = require('node-markdown').Markdown;
+    md = require('node-markdown').Markdown,
+    logging = require('../common/logging.js');
 
 var curriedHas = basics.curriedHas,
     merge = basics.merge,
@@ -17,6 +18,10 @@ var curriedHas = basics.curriedHas,
     ObjectId = Schema.Types.ObjectId;
 
 var app = express();
+
+app.use(logging.extendRequest());
+logging.set('server', 'api');
+
 app.use(express.bodyParser());
 app.use(function(req, res, next) {
   // http://www.w3.org/TR/access-control/
@@ -184,14 +189,8 @@ app.use(function(req, res, next) {
     });
   };
   res.sendInsufficientParameters = function() {
-    res.send(statusCodes.BAD_REQUEST, {
-      meta: {
-        code: statusCodes.BAD_REQUEST,
-        errorType: 'insufficient_params',
-        errorDetail: 'Insufficient parameters for this call'
-      },
-      response: { }
-    });
+    res.sendBadRequest('insufficient_params',
+      'Insufficient parameters for this call');
   };
   res.sendNotAuthorized = function(typeOpt, detailOpt) {
     res.send(statusCodes.NOT_AUTHORIZED, {
@@ -378,27 +377,8 @@ app.post('/user/login', function(req, res) {
                   res.sendInternalServerError(new Error("Couldn't find consumer"));
                 }
               });
-            } else {
-              // XXX factor out sendBadRequest?
-              res.send(statusCodes.BAD_REQUEST, {
-                meta: {
-                  code: statusCodes.BAD_REQUEST,
-                  errorType: 'login_failed',
-                  errorDetail: 'The password was incorrect'
-                },
-                response: { }
-              });
-            }
-          } else {
-            res.send(statusCodes.BAD_REQUEST, {
-              meta: {
-                code: statusCodes.BAD_REQUEST,
-                errorType: 'login_failed',
-                errorDetail: 'No user with that handle exists'
-              },
-              response: { }
-            });
-          }
+            } else res.sendBadRequest('login_failed', 'The password was incorrect');
+          } else res.sendBadRequest('login_failed', 'No user with that handle exists');
         });
       } else res.sendNotAuthorized();
     });
@@ -439,14 +419,7 @@ app.post('/user/new', function(req, res) {
           if (err) {
             res.sendInternalServerError(err);
           } else if (users.length > 0) {
-            res.send(statusCodes.BAD_REQUEST, {
-              meta: {
-                code: statusCodes.BAD_REQUEST,
-                errorType: 'handle_taken',
-                errorDetail: 'That handle has been taken'
-              },
-              response: { }
-            });
+            res.sendBadRequest('handle_taken', 'That handle has been taken');
           } else {
             var salt = crypto.randomBytes(16).toString('hex');
             var salted_password_md5 = saltedHash(salt, req.body.password_md5);
@@ -840,6 +813,8 @@ db.once('open', function() {
       }
     });
   }
-  app.listen(config.api_server.port);
-  console.log('Listening on port ' + config.api_server.port);
+  logging.init(function() {
+    app.listen(config.api_server.port);
+    console.log('Listening on port ' + config.api_server.port);
+  });
 });

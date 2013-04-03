@@ -8,7 +8,7 @@ var http = require('http'),
 
 var merge = basics.merge;
 
-function rawService(method, path, params, callback) {
+function rawService(method, path, params, callback, loggerOpt) {
   var options = {
     hostname: config.frontend_server.api_hostname,
     port: config.frontend_server.api_port,
@@ -25,9 +25,16 @@ function rawService(method, path, params, callback) {
     options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     options.headers['Content-Length'] = data.length;
   }
+  if (loggerOpt) {
+    loggerOpt.info('Making API request: ' + method + ' ' + path);
+    options.headers['X-Logging-Context'] = loggerOpt.loggingContext;
+  }
   var req = http.request(options, function(res) {
     res.setEncoding('utf8');
-    res.on('error', function(err) { callback(err); });
+    res.on('error', function(err) {
+      if (loggerOpt) loggerOpt.error('HTTP error making API call: ' + err.message);
+      callback(err);
+    });
     res.on('readable', function() {
       var raw = res.read();
       var json = null;
@@ -35,8 +42,16 @@ function rawService(method, path, params, callback) {
         json = JSON.parse(raw);
       } catch(ex) { }
       if (json != null) {
+        if (loggerOpt && (json.meta.code < 200 || json.meta.code > 299)) {
+          loggerOpt.error('API error ' + json.meta.code + ' (' +
+            (json.meta.errorType || 'unknown') + '): ' +
+            (json.meta.errorDetail || 'Unknown'));
+        }
         callback(null, json.meta, json.response);
-      } else callback(new Error("Malformed response"));
+      } else {
+        if (loggerOpt) loggerOpt.error('Got malformed JSON from API: ' + raw);
+        callback(new Error("Malformed API response"));
+      }
     });
   });
   req.on('error', function(err) { callback(err); });
@@ -109,10 +124,10 @@ function listenerEndpoints(service) {
   };
 }
 
-exports.Client = function(api_token) {
+exports.Client = function(api_token, reqOpt) {
   function service(method, path, params, callback) {
     var newParams = merge(params, { api_token: api_token });
-    rawService(method, path, newParams, callback);
+    rawService(method, path, newParams, callback, reqOpt);
   }
   return {
     api_token: api_token,

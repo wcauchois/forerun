@@ -104,6 +104,7 @@ app.use(function(req, res, next) {
       if (err) {
         res.sendInternalServerError(err);
       } else {
+        req.info('Rendering bundle: ' + bundleName);
         res.send(chrome({
           content: mustache.render(template,
             merge({ config_json: JSON.stringify(config.client) }, options)),
@@ -127,6 +128,7 @@ app.use(function(req, res, next) {
     req.cookies['flash.message'] = message;
   };
   res.loginRedirect = function() {
+    req.info('Redirecting user to login');
     req.session = null;
     res.clearCookie('api_token');
     res.flash('error', 'Please login to view that page');
@@ -134,7 +136,7 @@ app.use(function(req, res, next) {
   };
   res.withUser = function(loggedInCallback, loggedOutCallback) {
     if (req.session['api_token']) {
-      loggedInCallback(req.session['user'], api.Client(req.session['api_token']));
+      loggedInCallback(req.session['user'], api.Client(req.session['api_token'], req));
     } else if (loggedOutCallback) {
       req.session = null;
       loggedOutCallback();
@@ -223,9 +225,8 @@ app.post('/post/new', function(req, res) {
         if (err) {
           res.sendInternalServerError(err);
         } else {
-          if (meta.code != statusCodes.OK) {
+          if (meta.code != statusCodes.OK)
             res.flash('error', "Sorry, we couldn't make your post");
-          }
           res.redirect('/thread/' + req.body.thread_id);
         }
       });
@@ -268,18 +269,6 @@ app.post('/post/new', function(req, res) {
     } else render(currentUser, currentUser, currentUser.consumer.access_level);
   });
 });
-/*
-app.get('/profile', function(req, res) {
-  res.withUser(function(user, client) {
-    res.renderWithChrome('profile-page', {
-      user: user,
-      readable_join_date: basics.readableDate(user.join_date)
-    });
-  });
-});
-app.get('/user/:handle', function(req, res) {
-});
-*/
 
 app.get('/logout', function(req, res) {
   res.withUser(function(user, client) {
@@ -296,7 +285,7 @@ app.get('/logout', function(req, res) {
 app.post('/login', function(req, res) {
   if (['handle', 'password'].every(curriedHas(req.body))) {
     var password_md5 = basics.simpleMD5(req.body.password);
-    var client = api.Client(app.get('api_token'));
+    var client = api.Client(app.get('api_token'), req);
     client.user.login(req.body.handle, password_md5,
         function(err, meta, response) {
       if (err) {
@@ -327,7 +316,7 @@ app.post('/login', function(req, res) {
 app.post('/signup', function(req, res) {
   if (['handle', 'email', 'password'].every(curriedHas(req.body))) {
     var password_md5 = basics.simpleMD5(req.body.password);
-    var client = api.Client(app.get('api_token'));
+    var client = api.Client(app.get('api_token'), req);
     client.user.new_(
         req.body.handle, req.body.email, password_md5, 0,
         function(err, meta, response) {
@@ -416,8 +405,8 @@ logging.init(function() {
       api.Client(api_token).listener.register(
           url.format({
             protocol: 'http',
-            hostname: config.frontend_server.receiver_hostname,
-            port: config.frontend_server.receiver_port,
+            hostname: config.frontend_server.listener_hostname,
+            port: config.frontend_server.listener_port,
             pathname: '/callback'
           }), function(err, meta, response) {
         if (err || meta.code != statusCodes.OK) {

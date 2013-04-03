@@ -1,6 +1,6 @@
 var mongoose = require('mongoose');
 
-var logSchema = mongoose.Schema({
+exports.schema = mongoose.Schema({
   server: String,
   level: String,
   context: { type: String, required: false },
@@ -8,5 +8,5 @@ var logSchema = mongoose.Schema({
   extra: String
 });
 
-exports.Log = mongoose.model('Log', logSchema);
+//exports.Log = mongoose.model('Log', logSchema);
 

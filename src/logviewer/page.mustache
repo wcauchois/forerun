@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Forerun Logs</title>
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css" rel="stylesheet">
+    <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <style type="text/css">
+      .error { background-color: #FF9999; }
+      .server { font-weight: bold; float: left; width: 80px; }
+      .frontend { color: #CCCC52; }
+      .api { color: #6699FF; }
+      .level { float: left; width: 45px; }
+      .meta { cursor: default; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row" style="height: 50px;"></div>
+      {{#logs}}
+        <div class="row {{level}}">
+          <div class="span2">
+            <tt>{{timestamp_string}}</tt>
+          </div>
+          <div class="span2 meta">
+            <span class="server {{server}}">{{server}}</span>
+            <span class="level">{{level}}</span>
+            <span class="context" data-full-context="{{context}}">
+              {{context_snippet}}
+            </span>
+          </div>
+          <div class="span8">
+            {{message}}
+          </div>
+        </div>
+      {{/logs}}
+    </div>
+  </body>
+</html>

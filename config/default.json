@@ -2,6 +2,9 @@
   "logging": {
     "db_url": "mongodb://localhost/forerun_logs"
   },
+  "log_viewer": {
+    "port": 5000
+  },
   "api_server": {
     "port": 4000,
     "salt": "billybob",
@@ -11,8 +14,8 @@
     "cookie_secret": "oh you",
     "api_key": "hello",
     "api_secret": "world",
-    "receiver_hostname": "localhost",
-    "receiver_port": 3000,
+    "listener_hostname": "localhost",
+    "listener_port": 3000,
     "port": 3000,
     "api_hostname": "localhost",
     "api_port": 4000
