@@ -1,5 +1,6 @@
 var express = require('express'),
     fs = require('fs'),
+    querystring = require('querystring'),
     path = require('path'),
     mustache = require('mustache'),
     crypto = require('crypto'),
@@ -12,12 +13,16 @@ var express = require('express'),
     events = require('events'),
     md = require('node-markdown').Markdown,
     domain = require('domain'),
-    logging = require('../common/logging.js');
+    logging = require('../common/logging.js'),
+    AmazonSES = require('amazon-ses');
 
 var append = basics.append,
     merge = basics.merge,
     curriedHas = basics.curriedHas;
 
+var emailClient = new AmazonSES(
+  config.frontend_server.aws_access_key,
+  config.frontend_server.aws_secret);
 var app = express();
 var server = http.createServer(app);
 var io = require('socket.io').listen(server);
@@ -56,6 +61,10 @@ bundles['root'].partials.forEach(function(partial) {
   mustache.compilePartial(path.basename(partial, '.mustache'),
     fs.readFileSync(path.join(app.get('views'), partial), 'utf8'));
 });
+function renderTemplate(filename, options) {
+  var template = fs.readFileSync(path.join(app.get('views'), filename), 'utf8');
+  return mustache.render(template, options);
+}
 
 app.use(function(req, res, next) {
   res.sendBadRequest = function() {
@@ -170,7 +179,7 @@ app.get('/', function(req, res) {
       if (err) {
         res.sendInternalServerError(err);
       } else {
-        if (meta.errorType == 'invalid_token') {
+        if (meta.error_type == 'invalid_token') {
           res.loginRedirect();
         } else {
           if (meta.code != statusCodes.OK)
@@ -190,7 +199,7 @@ app.get('/thread/:id', function(req, res) {
       if (err) {
         res.sendInternalServerError(err);
       } else {
-        if (meta.errorType == 'invalid_token') {
+        if (meta.error_type == 'invalid_token') {
           res.loginRedirect();
         } else if (meta.code != statusCodes.OK) {
           res.flash('error', "Sorry, we couldn't get that thread for you");
@@ -206,6 +215,89 @@ app.get('/thread/:id', function(req, res) {
   });
 });
 
+app.get('/passwordReset', function(req, res) {
+  if (req.query.hasOwnProperty('handle') && req.query.hasOwnProperty('token')) {
+    res.renderWithChrome('password-reset-page', {
+      reset: {
+        handle: req.query.handle,
+        token: req.query.token,
+      }
+    });
+  } else {
+    res.renderWithChrome('password-reset-page', { reset: false });
+  }
+});
+
+app.post('/passwordReset', function(req, res) {
+  if (['token', 'handle', 'password'].every(curriedHas(req.body))) {
+    var client = api.Client(app.get('api_token'), req);
+    var password_md5 = basics.simpleMD5(req.body.password);
+    client.user.passwordReset(req.body.token, req.body.handle, password_md5,
+        function(err, meta, response) {
+      if (err) {
+        res.sendInternalServerError(err);
+      } else {
+        if (meta.code == 400) {
+          res.flash('error', 'Invalid reset token. Try sending the email again.');
+          res.redirect('/passwordReset');
+        } else if (meta.code != 200) {
+          res.flash('error',
+            "Couldn't reset your password. Try sending the email again");
+          res.redirect('/passwordReset');
+        } else {
+          res.flash('info', 'Your password was reset! Now you can log in.');
+          res.redirect('/#login');
+        }
+      }
+    });
+  } else res.sendBadRequest();
+});
+
+app.post('/sendPasswordReset', function(req, res) {
+  if (req.body.handle_or_email && req.body.handle_or_email.length >= 0) {
+    var client = api.Client(app.get('api_token'), req);
+    client.user.passwordResetToken(req.body.handle_or_email,
+        function(err, meta, response) {
+      if (err) {
+        res.sendInternalServerError();
+      } else {
+        if (meta.code == 404) {
+          res.flash('error', "No user found with that handle or email");
+          res.redirect('/passwordReset');
+        } else if (meta.code != 200) {
+          res.flash('error', 'There was an error sending your reset link. Try again?');
+          res.redirect('/passwordReset');
+        } else {
+          var options = {
+            user: response.user,
+            thanks_from: config.frontend_server.admin_real_name,
+            url: config.frontend_server.url + "/passwordReset?" +
+              querystring.stringify({
+                token: response.token,
+                handle: response.user.handle
+              })
+          };
+          emailClient.send({
+            from: config.frontend_server.from_email,
+            to: [response.user.email],
+            replyTo: [config.frontend_server.from_email],
+            subject: 'Reset your Forerun password',
+            body: {
+              html: renderTemplate('email/password-reset.mustache', { html: options }),
+              text: renderTemplate('email/password-reset.mustache', { text: options })
+            }
+          });
+          res.flash('info', 'Your reset link has been sent!');
+          res.redirect('/#login');
+        }
+      }
+    });
+  } else {
+    res.flash('error', 'Please enter your handle or email');
+    res.redirect('/passwordReset');
+  }
+});
+
 app.post('/thread/new', function(req, res) {
   if (['title', 'body_markdown'].every(curriedHas(req.body))) {
     res.withUser(function(user, client) {
@@ -215,7 +307,7 @@ app.post('/thread/new', function(req, res) {
           res.sendInternalServerError(err);
         } else {
           if (meta.code != statusCodes.OK) {
-            if (meta.errorType == 'param_error' &&
+            if (meta.error_type == 'param_error' &&
                 meta.paramErrors.some(function(err) { return err.param == 'title' })) {
               res.flash('error', 'Please provide a title for your thread');
             } else {
@@ -304,7 +396,7 @@ app.post('/login', function(req, res) {
       if (err) {
         res.sendInternalServerError(err);
       } else if (meta.code != statusCodes.OK) {
-        if (meta.errorType == 'login_failed') {
+        if (meta.error_type == 'login_failed') {
           res.flash('error', 'Your username or password was incorrect');
         } else res.flash('error', "Sorry, we couldn't log you in. Try again?");
         res.redirect('/#login');
@@ -336,7 +428,7 @@ app.post('/signup', function(req, res) {
       if (err) {
         res.sendInternalServerError(err);
       } else if (meta.code != statusCodes.OK) {
-        if (meta.errorType == 'handle_taken') {
+        if (meta.error_type == 'handle_taken') {
           res.flash('error', "Sorry, but there's already a user with that handle!");
         } else res.flash('error', "Sorry, we couldn't sign you up. Try again?");
         res.redirect('/#signup');

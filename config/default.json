@@ -11,6 +11,9 @@
     "db_url": "mongodb://localhost/forerun"
   },
   "frontend_server": {
+    "from_email": "wcauchois+forerun@gmail.com",
+    "admin_real_name": "Bill",
+    "url": "http://localhost:3000",
     "cookie_secret": "oh you",
     "api_key": "hello",
     "api_secret": "world",
@@ -18,7 +21,7 @@
     "listener_port": 3000,
     "port": 3000,
     "api_hostname": "localhost",
-    "api_port": 4000
+    "api_port": 4000,
     "aws_access_key": "foo",
     "aws_secret": "bar"
   },

@@ -63,6 +63,9 @@
       "formattingHelp.mustache"
     ]
   },
+  "password-reset-page": {
+    "template": "password-reset-page.mustache"
+  },
   "api-reference-page": {
     "template": "api-reference-page.mustache"
   }

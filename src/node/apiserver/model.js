@@ -9,6 +9,7 @@ var userSchema = Schema({
   salt: String,
   join_date: { type: Date, default: Date.now },
   avatar_small: { type: String, required: false },
+  password_reset_token: { type: String, required: false },
   settings: {
     hide_images_by_default: { type: Boolean, default: false }
   },

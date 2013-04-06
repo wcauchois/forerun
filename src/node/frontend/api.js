@@ -80,6 +80,18 @@ function userEndpoints(service) {
         handle: handle
       }, callback);
     },
+    passwordResetToken: function(handle_or_email, callback) {
+      service('GET', '/user/passwordResetToken', {
+        handle_or_email: handle_or_email
+      }, callback);
+    },
+    passwordReset: function(token, handle, password_md5, callback) {
+      service('POST', '/user/passwordReset', {
+        token: token,
+        handle: handle,
+        password_md5: password_md5
+      }, callback);
+    }
   };
 }
 

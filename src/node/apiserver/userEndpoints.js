@@ -53,7 +53,7 @@ module.exports = function(app, emitter) {
       req.withConsumer(6),
       function(consumer, callback) {
         var handleRegex = new RegExp(basics.escapeRegex(req.body.handle), 'i');
-        User.find({ handle: handleRegex }, passThrough(callback, consumer));
+        User.findOne({ handle: handleRegex }, passThrough(callback, consumer));
       },
       function(consumer, existingUser, callback) {
         if (existingUser) {
@@ -154,6 +154,59 @@ module.exports = function(app, emitter) {
       },
       function(targetUser, callback) {
         callback(null, { user: renderedUser(targetUser) });
+      }
+    ], res.handle);
+  });
+
+  app.get('/user/passwordResetToken', function(req, res) {
+    async.waterfall([
+      req.ensureParameters('handle_or_email'),
+      req.withConsumer(6),
+      function(consumer, callback) {
+        var query = { };
+        if (req.query.handle_or_email.indexOf('@') >= 0) {
+          query.email = req.query.handle_or_email;
+        } else {
+          query.handle = req.query.handle_or_email;
+        }
+        User.findOne(query, callback);
+      },
+      function(user, callback) {
+        if (user) {
+          user.password_reset_token = basics.generateTimedHash(user.salt);
+          user.save(callback);
+        } else callback(ApiError.notFound("That user doesn't exist"));
+      },
+      function(user, n, callback) {
+        callback(null, {
+          token: user.password_reset_token,
+          user: User.render(user)
+        });
+      }
+    ], res.handle);
+  });
+
+  app.post('/user/passwordReset', function(req, res) {
+    async.waterfall([
+      req.ensureParameters('token', 'handle', 'password_md5'),
+      req.withConsumer(6),
+      function(consumer, callback) {
+        User.findOne({ password_reset_token: req.body.token }, callback);
+      },
+      function(user, callback) {
+        if (user) {
+          if (user.handle != req.body.handle) {
+            callback(ApiError.badRequest('Bad password reset token; wrong user'));
+          } else {
+            user.password_reset_token = null;
+            user.salt = crypto.randomBytes(16).toString('hex');
+            user.salted_password_md5 = saltedHash(user.salt, req.body.password_md5);
+            user.save(callback);
+          }
+        } else callback(ApiError.badRequest('No such password reset token'));
+      },
+      function(user, n, callback) {
+        callback(null, { });
       }
     ], res.handle);
   });

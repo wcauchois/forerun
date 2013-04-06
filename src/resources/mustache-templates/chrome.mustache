@@ -17,16 +17,17 @@
   </head>
   <body>
     <div id="page" class="container">
-      <div id="flash-message" class="row flash"></div>
-      {{#flash}}
-        <script type="text/javascript">
-          var flashMessage = new forerun.views.FlashMessage({
-            el: $('#flash-message'),
-            message: "{{{message}}}",
-            type: "{{{type}}}"
-          }).render();
-        </script>
-      {{/flash}}
+      <div id="flash-message" class="row flash">
+        {{#flash}}
+          <script type="text/javascript">
+            var flashMessage = new forerun.views.FlashMessage({
+              el: $('#flash-message'),
+              message: "{{{message}}}",
+              type: "{{{type}}}"
+            }).render();
+          </script>
+        {{/flash}}
+      </div>
       {{#logged_in}}
       <div class="row" style="height: 20px;"></div>
       <div class="row">
