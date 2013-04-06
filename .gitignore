@@ -2,3 +2,4 @@ log
 *.swp
 *.pyc
 config/production.json
+config/development.json

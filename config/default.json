@@ -19,6 +19,8 @@
     "port": 3000,
     "api_hostname": "localhost",
     "api_port": 4000
+    "aws_access_key": "foo",
+    "aws_secret": "bar"
   },
   "client": {
     "socket_host": "http://localhost:3000",
