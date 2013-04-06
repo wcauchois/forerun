@@ -113,7 +113,7 @@ app.use(function(req, res, next) {
           styles: styles,
           clientTemplates: clientTemplates,
           flash: flashOpt,
-          user: req.session && req.session['user']
+          logged_in: !!(req.session && req.session.api_token)
         }));
       }
     });
@@ -141,6 +141,18 @@ app.use(function(req, res, next) {
       req.session = null;
       loggedOutCallback();
     } else res.loginRedirect();
+  };
+  req.withClient = function(loggedInCallback, loggedOutCallback) {
+    if (req.session.api_token) {
+      loggedInCallback(api.Client(req.session.api_token, req));
+    } else if (loggedOutCallback) {
+      req.session = null;
+      loggedOutCallback();
+    } else res.loginRedirect();
+  };
+  req.withClientAndUser = function(loggedInCallback, loggedOutCallback) {
+    req.withClient(function(client) {
+    }, loggedOutCallback);
   };
   next();
 });
@@ -246,6 +258,7 @@ app.post('/post/new', function(req, res) {
     var isSelf = currentUser._id == user._id;
     res.renderWithChrome('user-page', {
       user: user,
+      settings: user.settings,
       readable_join_date: basics.readableDate(user.join_date),
       access_level: userAccessLevel,
       show_email: isSelf,

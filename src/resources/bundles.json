@@ -42,6 +42,7 @@
   },
   "user-page": {
     "template": "user-page.mustache",
+    "scripts": ["/scripts/user-page.js"],
     "styles": ["/styles/user-page.less"]
   },
   "splash-page": {

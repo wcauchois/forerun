@@ -27,39 +27,30 @@
           }).render();
         </script>
       {{/flash}}
-      {{#user}}
-        <div class="row" style="height: 20px;">{{user.name}}</div>
-        <div class="row">
-          <div class="span1"></div>
-          <div class="span10">
-            <div class="navbar navbar-inverse">
-              <div class="navbar-inner">
-                <div class="container">
-                  <div class="nav-collapse collapse">
-                    <ul class="nav">
-                      <li style="font-weight: bold;"><a href="/">Forerun</a></li>
-                      <li><a href="/profile">Profile</a></li>
-                      <!--
-                      <li>
-                        <a href="#">API</a>
-                        <ul>
-                          <li><a href="/api/overview">Overview</a></li>
-                          <li><a href="/api/reference">Reference</a></li>
-                        </ul>
-                      </li>
-                      -->
-                    </ul>
-                    <ul class="nav nav-right">
-                      <li><a href="/logout">Logout</a></li>
-                    </ul>
-                  </div>
+      {{#logged_in}}
+      <div class="row" style="height: 20px;"></div>
+      <div class="row">
+        <div class="span1"></div>
+        <div class="span10">
+          <div class="navbar navbar-inverse">
+            <div class="navbar-inner">
+              <div class="container">
+                <div class="nav-collapse collapse">
+                  <ul class="nav">
+                    <li style="font-weight: bold;"><a href="/">Forerun</a></li>
+                    <li><a href="/profile">Profile</a></li>
+                  </ul>
+                  <ul class="nav nav-right">
+                    <li><a href="/logout">Logout</a></li>
+                  </ul>
                 </div>
               </div>
             </div>
           </div>
-          <div class="span1"></div>
         </div>
-      {{/user}}
+        <div class="span1"></div>
+      </div>
+      {{/logged_in}}
       {{{content}}}
     </div>
   </body>

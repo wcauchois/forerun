@@ -1,4 +1,5 @@
-var crypto = require('crypto');
+var crypto = require('crypto'),
+    config = require('config');
 
 exports.append = function(first, second) {
   var result = [];
@@ -16,7 +17,7 @@ exports.merge = function(left, right) {
 
 exports.curriedHas = function(obj) {
   return function(key) {
-    return obj.hasOwnProperty(key);
+    return key in obj;
   }
 };
 
@@ -32,5 +33,29 @@ exports.readableDate = function(instant) {
 // http://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
 exports.escapeRegex = function(str) {
   return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+}
+
+exports.passThrough = function(callback) {
+  var outerArguments = Array.prototype.slice.call(arguments, 1);
+  return function(err) {
+    if (err) {
+      callback(err);
+    } else {
+      var args = [null];
+      function pushArg(arg) { args.push(arg); }
+      outerArguments.forEach(pushArg);
+      Array.prototype.slice.call(arguments, 1).forEach(pushArg);
+      callback.apply(null, args);
+    }
+  };
+}
+
+// Used to generate API keys and secrets
+exports.generateTimedHash = function(val) {
+  return crypto.createHash('md5')
+    .update(config.api_server.salt)
+    .update(Date.now().toString())
+    .update(val)
+    .digest('hex');
 }
 

@@ -44,8 +44,8 @@ function rawService(method, path, params, callback, loggerOpt) {
       if (json != null) {
         if (loggerOpt && (json.meta.code < 200 || json.meta.code > 299)) {
           loggerOpt.error('API error ' + json.meta.code + ' (' +
-            (json.meta.errorType || 'unknown') + '): ' +
-            (json.meta.errorDetail || 'Unknown'));
+            (json.meta.error_type || 'unknown') + '): ' +
+            (json.meta.error_detail || 'Unknown'));
         }
         callback(null, json.meta, json.response);
       } else {
@@ -79,7 +79,7 @@ function userEndpoints(service) {
       service('GET', '/user/find', {
         handle: handle
       }, callback);
-    }
+    },
   };
 }
 
