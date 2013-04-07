@@ -40,10 +40,13 @@ forerun.views.ThreadPage = forerun.views.Page.extend({
   },
   render: function() {
     this.postComposeForm = new forerun.views.PostComposeForm({
-      el: $('#post-compose-form'),
+      el: this.$('#post-compose-form'),
       threadId: this.threadId
     });
     this.postComposeForm.showInstant();
+    this.onlineIndicator = new forerun.views.OnlineIndicator({
+      el: this.$('#online-indicator')
+    });
     return this;
   }
 });

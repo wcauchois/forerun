@@ -27,6 +27,7 @@ var app = express();
 var server = http.createServer(app);
 var io = require('socket.io').listen(server);
 var emitter = new events.EventEmitter();
+var onlineUsers = { };
 
 function sourceDir(name) {
   return path.join(__dirname, '../..', name);
@@ -449,6 +450,21 @@ app.post('/signup', function(req, res) {
     });
   } else res.sendBadRequest();
 });
+
+app.get('/heartbeat', function(req, res) {
+  if (req.session.user) {
+    onlineUsers[req.session.user.handle] = new Date().getTime();
+    res.send(Object.keys(onlineUsers));
+  } else res.send(400);
+});
+
+setInterval(function() {
+  var now = new Date().getTime();
+  Object.keys(onlineUsers).forEach(function(handle) {
+    var timestamp = onlineUsers[handle];
+    if (now - timestamp > 2000) delete onlineUsers[handle];
+  });
+}, 1000);
 
 app.post('/callback', function(req, res) {
   if (req.data.type && req.data.api_secret == config.frontend_server.api_secret) {

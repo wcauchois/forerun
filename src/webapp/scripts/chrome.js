@@ -29,6 +29,36 @@ $("script[type='text/template']").each(function(_, scriptElem) {
   };
 });
 
+forerun.views.OnlineIndicator = Backbone.View.extend({
+  initialize: function(options) {
+    this.onlineUsers = [];
+    this.heartbeat();
+    setInterval(_.bind(this.heartbeat, this), 1000);
+  },
+  heartbeat: function() {
+    $.getJSON('/heartbeat', _.bind(function(data) {
+      this.onlineUsers = data;
+      this.render();
+    }, this));
+  },
+  render: function() {
+    var renderedUsers = [];
+    for (var i = 0; i < this.onlineUsers.length; i++) {
+      renderedUsers.push({
+        handle: this.onlineUsers[i],
+        is_last: i == this.onlineUsers.length - 1
+      });
+    }
+    this.$el.html(forerun.templates.onlineIndicator({
+      zero_users: this.onlineUsers.length == 0,
+      pluralize_users: this.onlineUsers.length != 1,
+      users_count: this.onlineUsers.length,
+      users: renderedUsers
+    }));
+    return this;
+  }
+});
+
 forerun.views.Drawer = Backbone.View.extend({
   initialize: function(options) {
     this.$el.hide();

@@ -1,0 +1,6 @@
+<strong>{{users_count}} user{{#pluralize_users}}s{{/pluralize_users}} online{{^zero_users}}:{{/zero_users}}</strong>
+{{#users}}
+  <span class="fui-man-16"></span>
+  <a href="/user/{{handle}}">{{handle}}</a>
+  {{^is_last}},&nbsp;{{/is_last}}
+{{/users}}

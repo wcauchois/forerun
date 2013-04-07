@@ -18,6 +18,9 @@ forerun.views.HomePage = forerun.views.Page.extend({
     this.threadComposeForm = new forerun.views.ThreadComposeForm({
       el: this.$('#thread-compose-form')
     });
+    this.onlineIndicator = new forerun.views.OnlineIndicator({
+      el: this.$('#online-indicator')
+    });
     return this;
   },
   onNewThread: function(thread) {

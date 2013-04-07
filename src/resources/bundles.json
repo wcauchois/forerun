@@ -37,7 +37,8 @@
       "composeFormAux.mustache",
       "postComposeForm.mustache",
       "formattingHelp.mustache",
-      "postRow.mustache"
+      "postRow.mustache",
+      "onlineIndicator.mustache"
     ]
   },
   "user-page": {
@@ -60,7 +61,8 @@
       "threadComposeForm.mustache",
       "newThreadsBar.mustache",
       "composeFormAux.mustache",
-      "formattingHelp.mustache"
+      "formattingHelp.mustache",
+      "onlineIndicator.mustache"
     ]
   },
   "password-reset-page": {
