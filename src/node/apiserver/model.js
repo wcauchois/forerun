@@ -91,7 +91,8 @@ Post.render = function(post) {
     body_html: post.body_html,
     user_handle: post.user_handle,
     user_id: post.user_id.toString(),
-    thread_id: post.thread_id.toString()
+    thread_id: post.thread_id.toString(),
+    timestamp: post._id.getTimestamp()
   };
 };
 Thread.render = function(thread) {
