@@ -42,7 +42,7 @@ All of the source code is contained in the `src` directory. The subfolders and i
 Develop
 ---
 
-To get started, install [Node JS](http://nodejs.org/) and [https://github.com/ddollar/foreman](Foreman). You'll also need to setup a local instance of [MongoDB](http://www.mongodb.org/). You might want to create a file called `config/development.json` to override parameters from `config/default.json`.
+To get started, install [Node JS](http://nodejs.org/) and [Foreman](https://github.com/ddollar/foreman). You'll also need to setup a local instance of [MongoDB](http://www.mongodb.org/). You might want to create a file called `config/development.json` to override parameters from `config/default.json`.
 
 Next, run `foreman start`, direct your browser to `http://localhost:3000` (or whatever you set the port to be in your configuration), and get started developing!
 
