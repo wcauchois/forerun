@@ -37,7 +37,7 @@ All of the source code is contained in the `src` directory. The subfolders and i
 - `src/webapp` is where static files are stored. These files will get served as-is by Express.
 - `src/logviewer` is a crude webapp that lets you browse the server logs (from both API and frontend).
 - `src/resources/bundles.json` defines "bundles" for every page, as well as a "root" bundle. A bundle defines the resources that go into that page: like scripts, stylesheets, and the main template to use when rendering. Properties from "root" will be inherited by each page.
-- `src/resources/mustache-templates` is where client and server-side templates are stored. Note that while many server-side templates contain dashes in their name, client-side templates use lowerCamelCase. This is so that client-side templates can be accessed easily as a property of the globel `forerun.templates` object.
+- `src/resources/mustache-templates` is where client and server-side templates are stored. Note that while many server-side templates contain dashes in their name, client-side templates use lowerCamelCase. This is so that client-side templates can be accessed easily as a property of the global `forerun.templates` object.
 
 Develop
 ---
