@@ -50,7 +50,6 @@ var consumerSchema = Schema({
   access_level: Number,
 });
 
-// Use _id.getTimestamp() to get the date at which a session was created.
 var sessionSchema = Schema({
   api_token: String,
   consumer_id: ObjectId,
@@ -92,7 +91,7 @@ Post.render = function(post) {
     user_handle: post.user_handle,
     user_id: post.user_id.toString(),
     thread_id: post.thread_id.toString(),
-    timestamp: post._id.getTimestamp()
+    timestamp: post._id.getTimestamp().getTime()
   };
 };
 Thread.render = function(thread) {
