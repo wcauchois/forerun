@@ -51,7 +51,7 @@ I'm happy to accept pull requests.
 Deploy
 ---
 
-I deploy my instance of Forerun to a Linode box, but these instructions should be generally applicable. Foreman lets you export Procfiles to upstart, so you could do that, but I just start the prod server by running `foreman start` through the provided `scripts/ctl.sh` script. An example Git post-receive hook is included in the scripts directory, that would let you `git push` to deploy. Note that you can only push to a bare repository, so you would create a bare repository on your server and then the post-receive hook will clone that into a working directory (which is then used to start the Forerun server).
+I deploy my instance of Forerun to a Linode box. Foreman lets you export Procfiles to upstart, so you could do that, but I just start the prod server by running `foreman start` through the provided `scripts/ctl.sh` script. An example Git post-receive hook is included in the scripts directory, that would let you `git push` to deploy. Note that you can only push to a bare repository, so you would create a bare repository on your server and then the post-receive hook will clone that into a working directory (which is then used to start the Forerun server).
 
 To provide configuration parameters for production, edit or create `config/production.json`.
 
