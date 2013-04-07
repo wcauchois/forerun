@@ -27,6 +27,6 @@
   },
   "client": {
     "socket_host": "http://localhost:3000",
-    "api_host": "http://api.localhost:4000"
+    "api_host": "http://localhost:4000"
   }
 }
