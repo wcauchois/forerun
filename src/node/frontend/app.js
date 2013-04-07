@@ -77,7 +77,7 @@ app.use(function(req, res, next) {
     res.send(statusCodes.INTERNAL_SERVER_ERROR,
       (err && 'message' in err) ? err.message : 'Unkown error');
   };
-  res.renderWithChrome = function(bundleName, options) {
+  res.renderWithChrome = function(bundleName, options, titleOpt) {
     var bundle = bundles[bundleName];
     var templatePath = path.join(app.get('views'), bundle.template);
     var scripts = 
@@ -117,7 +117,7 @@ app.use(function(req, res, next) {
         res.send(chrome({
           content: mustache.render(template,
             merge({ config_json: JSON.stringify(config.client) }, options)),
-          title: 'Forerun',
+          title: titleOpt || 'Forerun',
           scripts: scripts,
           styles: styles,
           clientTemplates: clientTemplates,
@@ -208,7 +208,7 @@ app.get('/thread/:id', function(req, res) {
           res.renderWithChrome('thread-page', {
             thread: response.thread,
             posts: response.posts
-          });
+          }, basics.maybeElide(response.thread.title) + ' - Forerun');
         }
       }
     });

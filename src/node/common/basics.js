@@ -33,7 +33,7 @@ exports.readableDate = function(instant) {
 // http://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
 exports.escapeRegex = function(str) {
   return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
-}
+};
 
 exports.passThrough = function(callback) {
   var outerArguments = Array.prototype.slice.call(arguments, 1);
@@ -48,7 +48,13 @@ exports.passThrough = function(callback) {
       callback.apply(null, args);
     }
   };
-}
+};
+
+exports.maybeElide = function(str) {
+  if (str.length > 15) {
+    return str.substring(0, 15) + '...';
+  } else return str;
+};
 
 // Used to generate API keys and secrets
 exports.generateTimedHash = function(val) {
@@ -57,5 +63,5 @@ exports.generateTimedHash = function(val) {
     .update(Date.now().toString())
     .update(val)
     .digest('hex');
-}
+};
 
