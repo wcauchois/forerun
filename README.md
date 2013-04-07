@@ -5,7 +5,11 @@ Screenshots
 
 ![](https://raw.github.com/wcauchois/forerun/master/screenshots/splash_page.png)
 
+---
+
 ![](https://raw.github.com/wcauchois/forerun/master/screenshots/home_page.png)
+
+---
 
 ![](https://raw.github.com/wcauchois/forerun/master/screenshots/thread_reply_section.png)
 
