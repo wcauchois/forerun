@@ -46,8 +46,6 @@ To get started, install [Node JS](http://nodejs.org/) and [Foreman](https://gith
 
 Next, run `foreman start`, direct your browser to `http://localhost:3000` (or whatever you set the port to be in your configuration), and get started developing!
 
-I'm happy to accept pull requests.
-
 Deploy
 ---
 
